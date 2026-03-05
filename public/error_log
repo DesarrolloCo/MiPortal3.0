@@ -1,0 +1,1 @@
+[30-Jul-2025 14:54:25 America/bogota] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/contactacom/public_html/portal.contacta.com.co/vendor/facade/ignition/src/QueryRecorder/QueryRecorder.php on line 44
