@@ -285,3 +285,11 @@ Route::post('/Asignacion/create', [App\Http\Controllers\Reporte\ClienteControlle
 Route::get('/Asignacion/{id}', [App\Http\Controllers\Reporte\ClienteController::class, 'reportes'])->name('Cliente_informe.reportes');
 Route::put('/Asignacion/update/{id}', [App\Http\Controllers\Reporte\ClienteController::class, 'update'])->name('Cliente_informe.update');
 Route::delete('/Asignacion/delete/{id}', [App\Http\Controllers\Reporte\ClienteController::class, 'destroy'])->name('Cliente_informe.delete');
+
+// -----------------------------------      EXTRANET      -----------------------------------
+
+// EXTRANET :: DASHBOARD
+Route::middleware(['auth'])->prefix('extranet')->name('extranet.')->group(function () {
+    // Dashboard principal
+    Route::get('/dashboard', [App\Http\Controllers\Extranet\DashboardController::class, 'index'])->name('dashboard');
+});
