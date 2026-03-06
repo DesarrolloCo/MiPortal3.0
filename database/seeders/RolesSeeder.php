@@ -74,6 +74,77 @@ class RolesSeeder extends Seeder
             'sidebar_mi_visita',
             'sidebar_mi_inventario',
 
+            // PERMISOS MÓDULO EXTRANET
+            'sidebar_extranet',
+
+                // Dashboard
+                'ver-dashboard-extranet',
+
+                // Comunicados
+                'ver-comunicados',
+                'crear-comunicado',
+                'editar-comunicado',
+                'eliminar-comunicado',
+                'fijar-comunicado',
+                'archivar-comunicado',
+
+                // Proyectos
+                'ver-proyectos',
+                'crear-proyecto',
+                'editar-proyecto',
+                'eliminar-proyecto',
+                'gestionar-tareas',
+                'asignar-tareas',
+
+                // Eventos
+                'ver-eventos',
+                'crear-evento',
+                'editar-evento',
+                'eliminar-evento',
+                'gestionar-asistentes',
+
+                // Reconocimientos
+                'ver-reconocimientos',
+                'crear-reconocimiento',
+                'editar-reconocimiento',
+                'eliminar-reconocimiento',
+
+                // Encuestas
+                'ver-encuestas',
+                'crear-encuesta',
+                'editar-encuesta',
+                'eliminar-encuesta',
+                'ver-resultados-encuesta',
+                'responder-encuesta',
+
+                // Documentos
+                'ver-documentos',
+                'subir-documento',
+                'editar-documento',
+                'eliminar-documento',
+                'gestionar-versiones',
+
+                // Galería
+                'ver-galeria',
+                'crear-album',
+                'editar-album',
+                'eliminar-album',
+                'subir-fotos',
+                'eliminar-fotos',
+
+                // Muro Social
+                'ver-muro',
+                'publicar-muro',
+                'comentar',
+                'reaccionar',
+                'eliminar-comentarios',
+
+                // Directorio
+                'ver-directorio',
+
+                // Notificaciones
+                'gestionar-notificaciones',
+
         ];
 
 
