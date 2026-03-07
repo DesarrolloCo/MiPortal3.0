@@ -7,6 +7,28 @@
                 <!-- Sidebar navigation-->
                 <nav class="sidebar-nav">
                     <ul id="sidebarnav">
+                        <!-- EXTRANET -->
+                        <li class="nav-small-cap">EXTRANET</li>
+                        <li>
+                            <a href="{{ route('extranet.dashboard') }}" aria-expanded="false">
+                                <i class="mdi mdi-view-dashboard"></i>
+                                <span class="hide-menu">Dashboard</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="has-arrow" href="#" aria-expanded="false">
+                                <i class="mdi mdi-office-building"></i>
+                                <span class="hide-menu">Módulos Extranet</span>
+                            </a>
+                            <ul aria-expanded="false" class="collapse">
+                                <li><a href="{{ route('extranet.comunicados.index') }}"><i class="mdi mdi-bullhorn"></i> Comunicados</a></li>
+                                <li><a href="{{ route('extranet.proyectos.index') }}"><i class="mdi mdi-clipboard-text"></i> Proyectos</a></li>
+                                <li><a href="{{ route('extranet.eventos.index') }}"><i class="mdi mdi-calendar-multiple"></i> Eventos</a></li>
+                                <li><a href="{{ route('extranet.reconocimientos.index') }}"><i class="mdi mdi-trophy-award"></i> Reconocimientos</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-devider"></li>
+
                         @can('sidebar_administrador')
                         <li class="nav-small-cap">  GESTIÓN</li>
                         <li>

@@ -23,6 +23,7 @@ class HomeController extends Controller
      */
     public function index()
     {
-        return view('main.index');
+        // Redirigir al dashboard de Extranet
+        return redirect()->route('extranet.dashboard');
     }
 }
