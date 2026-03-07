@@ -292,4 +292,17 @@ Route::delete('/Asignacion/delete/{id}', [App\Http\Controllers\Reporte\ClienteCo
 Route::middleware(['auth'])->prefix('extranet')->name('extranet.')->group(function () {
     // Dashboard principal
     Route::get('/dashboard', [App\Http\Controllers\Extranet\DashboardController::class, 'index'])->name('dashboard');
+
+    // COMUNICADOS
+    Route::resource('comunicados', App\Http\Controllers\Extranet\ComunicadoController::class);
+    Route::post('/comunicados/{id}/fijar', [App\Http\Controllers\Extranet\ComunicadoController::class, 'fijar'])->name('comunicados.fijar');
+    Route::post('/comunicados/{id}/archivar', [App\Http\Controllers\Extranet\ComunicadoController::class, 'archivar'])->name('comunicados.archivar');
+
+    // EVENTOS
+    Route::resource('eventos', App\Http\Controllers\Extranet\EventoExtranetController::class);
+    Route::post('/eventos/{id}/confirmar-asistencia', [App\Http\Controllers\Extranet\EventoExtranetController::class, 'confirmarAsistencia'])->name('eventos.confirmar-asistencia');
+    Route::post('/eventos/{id}/cancelar-asistencia', [App\Http\Controllers\Extranet\EventoExtranetController::class, 'cancelarAsistencia'])->name('eventos.cancelar-asistencia');
+    Route::get('/eventos/{id}/asistentes', [App\Http\Controllers\Extranet\EventoExtranetController::class, 'listaAsistentes'])->name('eventos.lista-asistentes');
+    Route::post('/eventos/{id}/marcar-asistencia', [App\Http\Controllers\Extranet\EventoExtranetController::class, 'marcarAsistencia'])->name('eventos.marcar-asistencia');
+    Route::get('/eventos/calendario/data', [App\Http\Controllers\Extranet\EventoExtranetController::class, 'getEventosCalendario'])->name('eventos.calendario-data');
 });
