@@ -1,7 +1,9 @@
 @extends('layouts.main')
 
-@section('content')
+@section('main')
 <div class="container-fluid">
+    @include('extranet.partials.flash-messages')
+
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">

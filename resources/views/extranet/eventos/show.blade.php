@@ -14,25 +14,7 @@
             </nav>
 
             <!-- Mensajes de retroalimentación -->
-            @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="mdi mdi-check-circle"></i>
-                <strong>{{ session('success') }}</strong>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            @endif
-
-            @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="mdi mdi-alert-circle"></i>
-                <strong>{{ session('error') }}</strong>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            @endif
+            @include('extranet.partials.flash-messages')
 
             <!-- Evento -->
             <div class="card" style="border-left: 5px solid {{ $evento->color }};">
@@ -207,25 +189,4 @@
         </div>
     </div>
 </div>
-
-@if(session('success') || session('error'))
-<script>
-    // Auto-cerrar alertas de éxito después de 5 segundos
-    document.addEventListener('DOMContentLoaded', function() {
-        const successAlerts = document.querySelectorAll('.alert-success');
-        successAlerts.forEach(function(alert) {
-            setTimeout(function() {
-                const bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            }, 5000);
-        });
-
-        // Scroll suave a la alerta
-        const firstAlert = document.querySelector('.alert');
-        if (firstAlert) {
-            firstAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    });
-</script>
-@endif
 @endsection

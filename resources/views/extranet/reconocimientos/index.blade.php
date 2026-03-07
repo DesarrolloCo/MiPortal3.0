@@ -1,7 +1,9 @@
 @extends('layouts.main')
 
-@section('content')
+@section('main')
 <div class="container-fluid">
+    @include('extranet.partials.flash-messages')
+
     <!-- Header -->
     <div class="row">
         <div class="col-12">

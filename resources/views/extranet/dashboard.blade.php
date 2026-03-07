@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('content')
+@section('main')
 <div class="container-fluid">
     <!-- Título de la página -->
     <div class="row page-titles">

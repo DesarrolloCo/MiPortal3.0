@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('content')
+@section('main')
 <div class="container-fluid">
     <div class="row">
         <div class="col-lg-10 offset-lg-1">
