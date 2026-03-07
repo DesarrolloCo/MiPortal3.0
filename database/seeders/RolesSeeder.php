@@ -163,7 +163,9 @@ class RolesSeeder extends Seeder
         } */
 
         foreach($permisos as $permiso) {
-            Permission::create(['name'=>$permiso]);
+            Permission::firstOrCreate(['name'=>$permiso]);
         }
+
+        $this->command->info('Permisos sincronizados exitosamente.');
     }
 }
