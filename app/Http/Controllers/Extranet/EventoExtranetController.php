@@ -95,7 +95,7 @@ class EventoExtranetController extends Controller
 
         // Obtener empleado del usuario actual
         $user = Auth::user();
-        $empleado = empleado::where('USU_ID', $user->id)->first();
+        $empleado = empleado::where('USER_ID', $user->id)->first();
 
         if (!$empleado) {
             return redirect()
@@ -147,7 +147,7 @@ class EventoExtranetController extends Controller
 
         // Obtener empleado del usuario actual para verificar si ya está registrado
         $user = Auth::user();
-        $empleado = empleado::where('USU_ID', $user->id)->first();
+        $empleado = empleado::where('USER_ID', $user->id)->first();
 
         $miConfirmacion = null;
         if ($empleado) {
@@ -249,7 +249,7 @@ class EventoExtranetController extends Controller
 
         // Obtener empleado del usuario actual
         $user = Auth::user();
-        $empleado = empleado::where('USU_ID', $user->id)->first();
+        $empleado = empleado::where('USER_ID', $user->id)->first();
 
         if (!$empleado) {
             return redirect()
@@ -292,7 +292,7 @@ class EventoExtranetController extends Controller
     public function cancelarAsistencia($id)
     {
         $user = Auth::user();
-        $empleado = empleado::where('USU_ID', $user->id)->first();
+        $empleado = empleado::where('USER_ID', $user->id)->first();
 
         if (!$empleado) {
             return redirect()
