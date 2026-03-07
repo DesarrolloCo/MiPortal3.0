@@ -76,6 +76,7 @@ class DashboardController extends Controller
         return empleado::where('EMP_ACTIVO', 1)
             ->whereNotNull('EMP_FECHA_NACIMIENTO')
             ->whereRaw('MONTH(EMP_FECHA_NACIMIENTO) = ?', [$mesActual])
+            ->with(['cargo', 'campana']) // Cargar relaciones para optimizar consultas
             ->orderByRaw('DAY(EMP_FECHA_NACIMIENTO) ASC')
             ->get()
             ->map(function ($empleado) {
@@ -85,13 +86,21 @@ class DashboardController extends Controller
 
                 return [
                     'empleado' => $empleado,
-                    'fecha' => $fechaNacimiento->format('d/m'),
+                    'fecha' => $fechaNacimiento->locale('es')->isoFormat('DD [de] MMMM'),
                     'edad' => $edad,
                     'dias_restantes' => $diasRestantes,
                     'es_hoy' => $diasRestantes === 0,
                     'es_esta_semana' => $diasRestantes <= 7 && $diasRestantes >= 0,
                 ];
-            });
+            })
+            ->sortBy(function ($item) {
+                // Ordenar por días restantes: primero los de hoy, luego los más cercanos
+                if ($item['es_hoy']) {
+                    return 0;
+                }
+                return $item['dias_restantes'];
+            })
+            ->values(); // Resetear las claves del array
     }
 
     /**
