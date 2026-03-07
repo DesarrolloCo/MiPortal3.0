@@ -305,4 +305,22 @@ Route::middleware(['auth'])->prefix('extranet')->name('extranet.')->group(functi
     Route::get('/eventos/{id}/asistentes', [App\Http\Controllers\Extranet\EventoExtranetController::class, 'listaAsistentes'])->name('eventos.lista-asistentes');
     Route::post('/eventos/{id}/marcar-asistencia', [App\Http\Controllers\Extranet\EventoExtranetController::class, 'marcarAsistencia'])->name('eventos.marcar-asistencia');
     Route::get('/eventos/calendario/data', [App\Http\Controllers\Extranet\EventoExtranetController::class, 'getEventosCalendario'])->name('eventos.calendario-data');
+
+    // PROYECTOS
+    Route::resource('proyectos', App\Http\Controllers\Extranet\ProyectoController::class);
+    Route::post('/proyectos/{id}/actualizar-progreso', [App\Http\Controllers\Extranet\ProyectoController::class, 'actualizarProgreso'])->name('proyectos.actualizar-progreso');
+    Route::get('/proyectos/{id}/kanban', [App\Http\Controllers\Extranet\ProyectoController::class, 'kanban'])->name('proyectos.kanban');
+    Route::get('/proyectos/{id}/estadisticas', [App\Http\Controllers\Extranet\ProyectoController::class, 'estadisticas'])->name('proyectos.estadisticas');
+
+    // TAREAS DE PROYECTOS
+    Route::post('/proyectos/{proyecto}/tareas', [App\Http\Controllers\Extranet\TareaProyectoController::class, 'store'])->name('proyectos.tareas.store');
+    Route::put('/tareas/{tarea}', [App\Http\Controllers\Extranet\TareaProyectoController::class, 'update'])->name('tareas.update');
+    Route::delete('/tareas/{tarea}', [App\Http\Controllers\Extranet\TareaProyectoController::class, 'destroy'])->name('tareas.destroy');
+    Route::post('/tareas/{tarea}/mover', [App\Http\Controllers\Extranet\TareaProyectoController::class, 'moverEstado'])->name('tareas.mover');
+    Route::get('/tareas/{tarea}', [App\Http\Controllers\Extranet\TareaProyectoController::class, 'show'])->name('tareas.show');
+
+    // RECONOCIMIENTOS
+    Route::resource('reconocimientos', App\Http\Controllers\Extranet\ReconocimientoController::class);
+    Route::get('/reconocimientos/empleado-del-mes/destacado', [App\Http\Controllers\Extranet\ReconocimientoController::class, 'empleadoDelMes'])->name('reconocimientos.empleado-mes');
+    Route::get('/reconocimientos/estadisticas/general', [App\Http\Controllers\Extranet\ReconocimientoController::class, 'estadisticas'])->name('reconocimientos.estadisticas');
 });
