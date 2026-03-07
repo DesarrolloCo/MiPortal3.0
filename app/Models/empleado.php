@@ -23,6 +23,14 @@ class empleado extends Model
         return $this->belongsTo(campana::class, 'CAM_ID', 'CAM_ID');
     }
 
+    public function cargo(){
+        return $this->belongsTo(cargo::class, 'CAR_ID', 'CAR_ID');
+    }
+
+    public function reconocimientos(){
+        return $this->hasMany(\App\Models\Extranet\Reconocimiento::class, 'empleado_id', 'EMP_ID');
+    }
+
     public function estado($estado, $emp_id){
         $sql = "UPDATE `empleados` SET `EMP_ACTIVO`= '".$estado."' WHERE `EMP_ID` = ".$emp_id;
         DB::update($sql);
