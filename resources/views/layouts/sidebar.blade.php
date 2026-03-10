@@ -7,6 +7,7 @@
                 <!-- Sidebar navigation-->
                 <nav class="sidebar-nav">
                     <ul id="sidebarnav">
+                        
                         <!-- EXTRANET -->
                         <li class="nav-small-cap">EXTRANET</li>
                         <li>
@@ -15,20 +16,44 @@
                                 <span class="hide-menu">Dashboard</span>
                             </a>
                         </li>
+                        @can('sidebar_extranet')
                         <li>
                             <a class="has-arrow" href="#" aria-expanded="false">
-                                <i class="mdi mdi-office-building"></i>
+                                <i class="mdi mdi-web"></i>
                                 <span class="hide-menu">Módulos Extranet</span>
                             </a>
                             <ul aria-expanded="false" class="collapse">
+                                @can('ver-comunicados')
                                 <li><a href="{{ route('extranet.comunicados.index') }}"><i class="mdi mdi-bullhorn"></i> Comunicados</a></li>
+                                @endcan
+
+                                @can('ver-proyectos')
                                 <li><a href="{{ route('extranet.proyectos.index') }}"><i class="mdi mdi-clipboard-text"></i> Proyectos</a></li>
+                                @endcan
+
+                                @can('ver-eventos')
                                 <li><a href="{{ route('extranet.eventos.index') }}"><i class="mdi mdi-calendar-multiple"></i> Eventos</a></li>
+                                @endcan
+
+                                @can('ver-reconocimientos')
                                 <li><a href="{{ route('extranet.reconocimientos.index') }}"><i class="mdi mdi-trophy-award"></i> Reconocimientos</a></li>
+                                @endcan
+
+                                @can('ver-encuestas')
+                                <li><a href="{{ route('extranet.encuestas.index') }}"><i class="mdi mdi-poll-box"></i> Encuestas</a></li>
+                                @endcan
+
+                                @can('ver-documentos')
+                                <li><a href="{{ route('extranet.documentos.index') }}"><i class="mdi mdi-file-document-multiple"></i> Documentos</a></li>
+                                @endcan
+
+                                @can('ver-galeria')
+                                <li><a href="{{ route('extranet.galeria.index') }}"><i class="mdi mdi-image-multiple"></i> Galería</a></li>
+                                @endcan
                             </ul>
                         </li>
                         <li class="nav-devider"></li>
-
+                        @endcan
                         @can('sidebar_administrador')
                         <li class="nav-small-cap">  GESTIÓN</li>
                         <li>
