@@ -323,4 +323,53 @@ Route::middleware(['auth'])->prefix('extranet')->name('extranet.')->group(functi
     Route::resource('reconocimientos', App\Http\Controllers\Extranet\ReconocimientoController::class);
     Route::get('/reconocimientos/empleado-del-mes/destacado', [App\Http\Controllers\Extranet\ReconocimientoController::class, 'empleadoDelMes'])->name('reconocimientos.empleado-mes');
     Route::get('/reconocimientos/estadisticas/general', [App\Http\Controllers\Extranet\ReconocimientoController::class, 'estadisticas'])->name('reconocimientos.estadisticas');
+
+    // ENCUESTAS
+    Route::resource('encuestas', App\Http\Controllers\Extranet\EncuestaController::class);
+    Route::post('/encuestas/{id}/responder', [App\Http\Controllers\Extranet\EncuestaController::class, 'responder'])->name('encuestas.responder');
+    Route::get('/encuestas/{id}/resultados', [App\Http\Controllers\Extranet\EncuestaController::class, 'resultados'])->name('encuestas.resultados');
+    Route::get('/encuestas/{id}/exportar-excel', [App\Http\Controllers\Extranet\EncuestaController::class, 'exportarExcel'])->name('encuestas.exportar-excel');
+
+    // DOCUMENTOS
+    Route::resource('documentos', App\Http\Controllers\Extranet\DocumentoController::class);
+    Route::get('/documentos/{id}/descargar', [App\Http\Controllers\Extranet\DocumentoController::class, 'descargar'])->name('documentos.descargar');
+    Route::post('/documentos/{id}/version', [App\Http\Controllers\Extranet\DocumentoController::class, 'nuevaVersion'])->name('documentos.nueva-version');
+    Route::get('/documentos/buscar/query', [App\Http\Controllers\Extranet\DocumentoController::class, 'buscar'])->name('documentos.buscar');
+
+    // GALERÍA
+    Route::resource('galeria', App\Http\Controllers\Extranet\GaleriaController::class);
+    Route::get('/galeria/{id}/upload-fotos', [App\Http\Controllers\Extranet\GaleriaController::class, 'uploadFotos'])->name('galeria.upload-fotos');
+    Route::post('/galeria/{id}/store-fotos', [App\Http\Controllers\Extranet\GaleriaController::class, 'storeFotos'])->name('galeria.store-fotos');
+    Route::delete('/galeria/fotos/{foto}', [App\Http\Controllers\Extranet\GaleriaController::class, 'eliminarFoto'])->name('galeria.eliminar-foto');
+    Route::post('/galeria/{id}/ordenar-fotos', [App\Http\Controllers\Extranet\GaleriaController::class, 'ordenarFotos'])->name('galeria.ordenar-fotos');
+    Route::post('/galeria/fotos/{foto}/like', [App\Http\Controllers\Extranet\GaleriaController::class, 'likeFoto'])->name('galeria.like-foto');
+
+    // MURO SOCIAL
+    Route::get('/muro', [App\Http\Controllers\Extranet\MuroController::class, 'index'])->name('muro.index');
+    Route::get('/muro/load-more', [App\Http\Controllers\Extranet\MuroController::class, 'loadMore'])->name('muro.load-more');
+    Route::post('/publicaciones/{id}/destacar', [App\Http\Controllers\Extranet\MuroController::class, 'destacar'])->name('publicaciones.destacar');
+    Route::post('/publicaciones/{id}/ocultar', [App\Http\Controllers\Extranet\MuroController::class, 'ocultar'])->name('publicaciones.ocultar');
+
+    // COMENTARIOS
+    Route::post('/comentarios', [App\Http\Controllers\Extranet\ComentarioController::class, 'store'])->name('comentarios.store');
+    Route::put('/comentarios/{id}', [App\Http\Controllers\Extranet\ComentarioController::class, 'update'])->name('comentarios.update');
+    Route::delete('/comentarios/{id}', [App\Http\Controllers\Extranet\ComentarioController::class, 'destroy'])->name('comentarios.destroy');
+    Route::post('/comentarios/{id}/responder', [App\Http\Controllers\Extranet\ComentarioController::class, 'responder'])->name('comentarios.responder');
+
+    // REACCIONES
+    Route::post('/publicaciones/{id}/reaccionar', [App\Http\Controllers\Extranet\ReaccionController::class, 'toggle'])->name('reacciones.toggle');
+
+    // DIRECTORIO
+    Route::get('/directorio', [App\Http\Controllers\Extranet\DirectorioController::class, 'index'])->name('directorio.index');
+    Route::get('/directorio/{id}', [App\Http\Controllers\Extranet\DirectorioController::class, 'show'])->name('directorio.show');
+    Route::get('/directorio/organigrama/ver', [App\Http\Controllers\Extranet\DirectorioController::class, 'organigrama'])->name('directorio.organigrama');
+    Route::get('/directorio/buscar/query', [App\Http\Controllers\Extranet\DirectorioController::class, 'buscar'])->name('directorio.buscar');
+    Route::get('/directorio/{id}/vcard', [App\Http\Controllers\Extranet\DirectorioController::class, 'exportarVCard'])->name('directorio.vcard');
+
+    // NOTIFICACIONES
+    Route::get('/notificaciones', [App\Http\Controllers\Extranet\NotificacionController::class, 'index'])->name('notificaciones.index');
+    Route::post('/notificaciones/{id}/marcar-leida', [App\Http\Controllers\Extranet\NotificacionController::class, 'marcarLeida'])->name('notificaciones.marcar-leida');
+    Route::post('/notificaciones/marcar-todas-leidas', [App\Http\Controllers\Extranet\NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.marcar-todas-leidas');
+    Route::delete('/notificaciones/{id}', [App\Http\Controllers\Extranet\NotificacionController::class, 'eliminar'])->name('notificaciones.eliminar');
+    Route::get('/notificaciones/no-leidas', [App\Http\Controllers\Extranet\NotificacionController::class, 'getNoLeidas'])->name('notificaciones.no-leidas');
 });
