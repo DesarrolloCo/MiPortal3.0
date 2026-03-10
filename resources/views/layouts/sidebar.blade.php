@@ -50,6 +50,14 @@
                                 @can('ver-galeria')
                                 <li><a href="{{ route('extranet.galeria.index') }}"><i class="mdi mdi-image-multiple"></i> Galería</a></li>
                                 @endcan
+
+                                @can('ver-muro')
+                                <li><a href="{{ route('extranet.muro.index') }}"><i class="mdi mdi-newspaper"></i> Muro Social</a></li>
+                                @endcan
+
+                                @can('ver-directorio')
+                                <li><a href="{{ route('extranet.directorio.index') }}"><i class="mdi mdi-account-group"></i> Directorio</a></li>
+                                @endcan
                             </ul>
                         </li>
                         <li class="nav-devider"></li>
