@@ -11,7 +11,7 @@ class EncuestaController extends Controller
 {
     public function index()
     {
-        $encuestas = Encuesta::with('autor')
+        $encuestas = Encuesta::with(['autor', 'preguntas'])
             ->orderBy('created_at', 'DESC')
             ->get();
 
@@ -54,7 +54,17 @@ class EncuestaController extends Controller
     {
         $encuesta = Encuesta::with(['preguntas', 'respuestas'])->findOrFail($id);
 
-        return view('extranet.encuestas.show', compact('encuesta'));
+        // Verificar si el usuario ya respondió esta encuesta
+        $empleado = Auth::user()->empleados;
+        $yaRespondio = false;
+
+        if ($empleado && !$encuesta->anonima) {
+            $yaRespondio = $encuesta->respuestas()
+                ->where('empleado_id', $empleado->EMP_ID)
+                ->exists();
+        }
+
+        return view('extranet.encuestas.show', compact('encuesta', 'yaRespondio'));
     }
 
     public function edit($id)
@@ -94,9 +104,50 @@ class EncuestaController extends Controller
 
     public function responder(Request $request, $id)
     {
-        // Implementar lógica de guardar respuestas
-        return redirect()->route('extranet.encuestas.show', $id)
-            ->with('success', 'Respuesta guardada exitosamente.');
+        $encuesta = Encuesta::with('preguntas')->findOrFail($id);
+
+        // Verificar que la encuesta esté activa
+        if ($encuesta->estado !== 'activa') {
+            return redirect()->route('extranet.encuestas.index')
+                ->with('error', 'Esta encuesta ya no está disponible para responder.');
+        }
+
+        $empleado = Auth::user()->empleados;
+
+        // Verificar si ya respondió (solo para encuestas no anónimas)
+        if ($empleado && !$encuesta->anonima) {
+            $yaRespondio = $encuesta->respuestas()
+                ->where('empleado_id', $empleado->EMP_ID)
+                ->exists();
+
+            if ($yaRespondio) {
+                return redirect()->route('extranet.encuestas.index')
+                    ->with('warning', 'Ya has respondido esta encuesta anteriormente.');
+            }
+        }
+
+        $respuestas = $request->input('respuestas', []);
+
+        // Guardar respuestas
+        foreach ($respuestas as $pregunta_id => $respuesta) {
+            // Para checkboxes, la respuesta es un array
+            if (is_array($respuesta)) {
+                $respuesta = json_encode($respuesta);
+            }
+
+            \App\Models\Extranet\RespuestaEncuesta::create([
+                'encuesta_id' => $encuesta->id,
+                'pregunta_id' => $pregunta_id,
+                'empleado_id' => $encuesta->anonima ? null : ($empleado ? $empleado->EMP_ID : null),
+                'respuesta' => $respuesta,
+            ]);
+        }
+
+        // Incrementar contador de respuestas
+        $encuesta->incrementarRespuestas();
+
+        return redirect()->route('extranet.encuestas.index')
+            ->with('success', '¡Gracias por tu participación! Tu respuesta ha sido registrada exitosamente.');
     }
 
     public function resultados($id)
