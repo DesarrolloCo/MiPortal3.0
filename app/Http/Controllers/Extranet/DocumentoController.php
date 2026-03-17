@@ -49,10 +49,14 @@ class DocumentoController extends Controller
             'titulo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'categoria' => 'required|in:politicas,manuales,formatos,reglamentos,procedimientos,capacitacion,otro',
+            'version' => 'nullable|string|max:20',
             'archivo' => 'required|file|max:10240', // 10MB max
         ]);
 
         $validated['autor_id'] = Auth::id();
+        $validated['destacado'] = $request->has('destacado') ? 1 : 0;
+        $validated['version'] = $request->input('version', '1.0');
+        $validated['descargas'] = 0;
 
         // Guardar archivo
         if ($request->hasFile('archivo')) {
@@ -92,7 +96,10 @@ class DocumentoController extends Controller
             'titulo' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'categoria' => 'required|in:politicas,manuales,formatos,reglamentos,procedimientos,capacitacion,otro',
+            'version' => 'nullable|string|max:20',
         ]);
+
+        $validated['destacado'] = $request->has('destacado') ? 1 : 0;
 
         $documento->update($validated);
 
