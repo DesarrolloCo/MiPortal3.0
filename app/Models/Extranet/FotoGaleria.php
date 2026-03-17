@@ -30,6 +30,14 @@ class FotoGaleria extends Model
         return $this->belongsTo(Galeria::class, 'galeria_id');
     }
 
+    // Accessors
+    public function getUserHasLikedAttribute()
+    {
+        // Por ahora retornar false
+        // TODO: Implementar tabla de likes por usuario cuando se requiera
+        return false;
+    }
+
     // Métodos
     public function incrementarLikes()
     {

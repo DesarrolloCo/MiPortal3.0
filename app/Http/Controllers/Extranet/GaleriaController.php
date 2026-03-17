@@ -16,14 +16,19 @@ class GaleriaController extends Controller
         $galerias = Galeria::with('evento')
             ->withCount('fotos')
             ->orderBy('fecha', 'DESC')
-            ->get();
+            ->paginate(12);
 
         return view('extranet.galeria.index', compact('galerias'));
     }
 
     public function create()
     {
-        return view('extranet.galeria.create');
+        // Obtener eventos recientes para vincular
+        $eventos = \App\Models\Extranet\EventoExtranet::where('fecha_inicio', '>=', now()->subMonths(3))
+            ->orderBy('fecha_inicio', 'DESC')
+            ->get();
+
+        return view('extranet.galeria.create', compact('eventos'));
     }
 
     public function store(Request $request)
@@ -54,9 +59,14 @@ class GaleriaController extends Controller
 
     public function edit($id)
     {
-        $galeria = Galeria::findOrFail($id);
+        $galeria = Galeria::with('fotos')->findOrFail($id);
 
-        return view('extranet.galeria.edit', compact('galeria'));
+        // Obtener eventos para vincular
+        $eventos = \App\Models\Extranet\EventoExtranet::where('fecha_inicio', '>=', now()->subMonths(6))
+            ->orderBy('fecha_inicio', 'DESC')
+            ->get();
+
+        return view('extranet.galeria.edit', compact('galeria', 'eventos'));
     }
 
     public function update(Request $request, $id)
