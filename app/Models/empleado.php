@@ -27,8 +27,21 @@ class empleado extends Model
         return $this->belongsTo(cargo::class, 'CAR_ID', 'CAR_ID');
     }
 
+    public function departamento(){
+        return $this->belongsTo(departamento::class, 'DEP_ID', 'DEP_ID');
+    }
+
+    public function contratos(){
+        return $this->hasMany(emp_contrato::class, 'EMP_ID', 'EMP_ID');
+    }
+
     public function reconocimientos(){
         return $this->hasMany(\App\Models\Extranet\Reconocimiento::class, 'empleado_id', 'EMP_ID');
+    }
+
+    // Accessor para nombre completo
+    public function getNombreCompletoAttribute(){
+        return trim($this->EMP_NOMBRES . ' ' . $this->EMP_APELLIDOS);
     }
 
     public function estado($estado, $emp_id){

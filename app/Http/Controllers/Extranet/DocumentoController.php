@@ -28,7 +28,14 @@ class DocumentoController extends Controller
 
         $documentos = $query->orderBy('created_at', 'DESC')->paginate(12);
 
-        return view('extranet.documentos.index', compact('documentos'));
+        // Obtener documentos destacados
+        $destacados = DocumentoExtranet::with('autor')
+            ->where('destacado', true)
+            ->orderBy('created_at', 'DESC')
+            ->take(3)
+            ->get();
+
+        return view('extranet.documentos.index', compact('documentos', 'destacados'));
     }
 
     public function create()

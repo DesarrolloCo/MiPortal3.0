@@ -15,7 +15,13 @@ class EncuestaController extends Controller
             ->orderBy('created_at', 'DESC')
             ->get();
 
-        return view('extranet.encuestas.index', compact('encuestas'));
+        // Separar encuestas por estado para las pestañas
+        $encuestasActivas = $encuestas->where('estado', 'activa');
+        $encuestasPendientes = $encuestas->where('estado', 'borrador');
+        $encuestasCerradas = $encuestas->where('estado', 'cerrada');
+        $borradores = $encuestas->where('estado', 'borrador');
+
+        return view('extranet.encuestas.index', compact('encuestas', 'encuestasActivas', 'encuestasPendientes', 'encuestasCerradas', 'borradores'));
     }
 
     public function create()
