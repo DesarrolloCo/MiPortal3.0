@@ -41,13 +41,30 @@ class EncuestaController extends Controller
         ]);
 
         $validated['autor_id'] = Auth::id();
+        $validated['anonima'] = $request->has('anonima') ? 1 : 0;
 
         $encuesta = Encuesta::create($validated);
 
-        // Guardar preguntas (implementar lógica)
+        // Guardar preguntas
+        if ($request->has('preguntas')) {
+            $preguntas = $request->input('preguntas');
+
+            foreach ($preguntas as $orden => $preguntaData) {
+                \App\Models\Extranet\PreguntaEncuesta::create([
+                    'encuesta_id' => $encuesta->id,
+                    'pregunta' => $preguntaData['pregunta'],
+                    'tipo_respuesta' => $preguntaData['tipo_respuesta'],
+                    'obligatoria' => isset($preguntaData['obligatoria']) ? 1 : 0,
+                    'opciones' => $preguntaData['opciones'] ?? null,
+                    'escala_min' => $preguntaData['escala_min'] ?? null,
+                    'escala_max' => $preguntaData['escala_max'] ?? null,
+                    'orden' => $orden,
+                ]);
+            }
+        }
 
         return redirect()->route('extranet.encuestas.index')
-            ->with('success', 'Encuesta creada exitosamente.');
+            ->with('success', 'Encuesta creada exitosamente con ' . ($request->has('preguntas') ? count($request->input('preguntas')) : 0) . ' preguntas.');
     }
 
     public function show($id)
