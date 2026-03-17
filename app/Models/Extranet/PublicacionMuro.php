@@ -128,6 +128,19 @@ class PublicacionMuro extends Model
     }
 
     // Métodos
+    public function getUserReaccionAttribute()
+    {
+        if (!auth()->check()) {
+            return null;
+        }
+
+        $reaccion = $this->reacciones()
+            ->where('autor_id', auth()->id())
+            ->first();
+
+        return $reaccion ? $reaccion->tipo : null;
+    }
+
     public function incrementarVistas()
     {
         $this->increment('vistas');
