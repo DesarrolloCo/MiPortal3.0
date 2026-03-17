@@ -44,7 +44,7 @@
                                 @endcan
 
                                 @can('ver-documentos')
-                                <li><a href="{{ route('extranet.documentos.index') }}"><i class="mdi mdi-file-document-multiple"></i> Documentos</a></li>
+                                <li><a href="{{ route('extranet.documentos.index') }}"><i class="mdi mdi-file-document"></i> Documentos</a></li>
                                 @endcan
 
                                 @can('ver-galeria')
@@ -56,7 +56,7 @@
                                 @endcan
 
                                 @can('ver-directorio')
-                                <li><a href="{{ route('extranet.directorio.index') }}"><i class="mdi mdi-account-group"></i> Directorio</a></li>
+                                <li><a href="{{ route('extranet.directorio.index') }}"><i class="mdi mdi-phone"></i> Directorio</a></li>
                                 @endcan
                             </ul>
                         </li>

@@ -149,5 +149,44 @@
         </div>
     </div>
     @endif
+
+    <!-- Widgets de Módulos Nuevos: Encuestas y Reconocimientos -->
+    <div class="row">
+        @can('ver-encuestas')
+        <div class="col-lg-6">
+            @include('extranet.widgets.encuestas-pendientes')
+        </div>
+        @endcan
+
+        @can('ver-reconocimientos')
+        <div class="col-lg-6">
+            @include('extranet.widgets.reconocimientos-recientes')
+        </div>
+        @endcan
+    </div>
+
+    <!-- Widgets de Documentos y Muro Social -->
+    <div class="row">
+        @can('ver-documentos')
+        <div class="col-lg-6">
+            @include('extranet.widgets.documentos-destacados')
+        </div>
+        @endcan
+
+        @can('ver-muro')
+        <div class="col-lg-6">
+            @include('extranet.widgets.muro-social')
+        </div>
+        @endcan
+    </div>
+
+    <!-- Widget de Galería Reciente -->
+    @can('ver-galeria')
+    <div class="row">
+        <div class="col-lg-12">
+            @include('extranet.widgets.galeria-reciente')
+        </div>
+    </div>
+    @endcan
 </div>
 @endsection

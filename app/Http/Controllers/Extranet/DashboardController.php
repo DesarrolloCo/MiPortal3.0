@@ -10,10 +10,13 @@ use App\Models\Extranet\EventoExtranet;
 use App\Models\Extranet\PublicacionMuro;
 use App\Models\Extranet\Reconocimiento;
 use App\Models\Extranet\Encuesta;
+use App\Models\Extranet\DocumentoExtranet;
+use App\Models\Extranet\Galeria;
 use App\Models\empleado;
 use App\Models\emp_contrato;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -54,6 +57,18 @@ class DashboardController extends Controller
             ->take(3)
             ->get();
 
+        // Encuestas pendientes de responder
+        $encuestasPendientes = $this->getEncuestasPendientes();
+
+        // Reconocimientos recientes
+        $reconocimientosRecientes = $this->getReconocimientosRecientes();
+
+        // Documentos destacados
+        $documentosDestacados = $this->getDocumentosDestacados();
+
+        // Galería reciente
+        $galeriaReciente = $this->getGaleriaReciente();
+
         return view('extranet.dashboard', compact(
             'cumpleanos',
             'aniversarios',
@@ -62,7 +77,11 @@ class DashboardController extends Controller
             'proyectosActivos',
             'estadisticas',
             'publicaciones',
-            'comunicadosFijados'
+            'comunicadosFijados',
+            'encuestasPendientes',
+            'reconocimientosRecientes',
+            'documentosDestacados',
+            'galeriaReciente'
         ));
     }
 
@@ -269,5 +288,101 @@ class DashboardController extends Controller
         }
 
         return $hoy->diffInDays($aniversario);
+    }
+
+    /**
+     * Widget 7: Obtener encuestas pendientes de responder
+     */
+    private function getEncuestasPendientes()
+    {
+        $empleado = Auth::user()->empleados;
+
+        if (!$empleado) {
+            return collect([]);
+        }
+
+        // Obtener encuestas activas
+        $encuestasActivas = Encuesta::where('estado', 'activa')
+            ->where('fecha_inicio', '<=', Carbon::now())
+            ->where(function ($q) {
+                $q->whereNull('fecha_fin')
+                    ->orWhere('fecha_fin', '>=', Carbon::now());
+            })
+            ->with('autor')
+            ->orderBy('fecha_inicio', 'DESC')
+            ->get();
+
+        // Filtrar las que el usuario no ha respondido
+        $pendientes = $encuestasActivas->filter(function ($encuesta) use ($empleado) {
+            if ($encuesta->anonima) {
+                return true; // No podemos verificar si ya respondió
+            }
+
+            $yaRespondio = $encuesta->respuestas()
+                ->where('empleado_id', $empleado->EMP_ID)
+                ->exists();
+
+            return !$yaRespondio;
+        });
+
+        return $pendientes->take(3);
+    }
+
+    /**
+     * Widget 8: Obtener reconocimientos recientes
+     */
+    private function getReconocimientosRecientes()
+    {
+        return Reconocimiento::with(['empleado', 'otorgadoPor'])
+            ->orderBy('fecha', 'DESC')
+            ->take(5)
+            ->get()
+            ->map(function ($reconocimiento) {
+                return [
+                    'reconocimiento' => $reconocimiento,
+                    'dias_atras' => Carbon::parse($reconocimiento->fecha)->diffInDays(Carbon::now()),
+                    'es_reciente' => Carbon::parse($reconocimiento->fecha)->diffInDays(Carbon::now()) <= 7,
+                ];
+            });
+    }
+
+    /**
+     * Widget 9: Obtener documentos destacados o recientes
+     */
+    private function getDocumentosDestacados()
+    {
+        // Primero intentar obtener destacados
+        $destacados = DocumentoExtranet::with('autor')
+            ->where('destacado', true)
+            ->orderBy('created_at', 'DESC')
+            ->take(4)
+            ->get();
+
+        // Si no hay suficientes destacados, complementar con recientes
+        if ($destacados->count() < 4) {
+            $faltantes = 4 - $destacados->count();
+            $idsDestacados = $destacados->pluck('id')->toArray();
+
+            $recientes = DocumentoExtranet::with('autor')
+                ->whereNotIn('id', $idsDestacados)
+                ->orderBy('created_at', 'DESC')
+                ->take($faltantes)
+                ->get();
+
+            return $destacados->concat($recientes);
+        }
+
+        return $destacados;
+    }
+
+    /**
+     * Widget 10: Obtener galería reciente
+     */
+    private function getGaleriaReciente()
+    {
+        return Galeria::with('evento')
+            ->withCount('fotos')
+            ->orderBy('created_at', 'DESC')
+            ->first();
     }
 }
