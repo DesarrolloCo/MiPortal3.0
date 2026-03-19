@@ -16,9 +16,21 @@ class EncuestaController extends Controller
             ->get();
 
         // Separar encuestas por estado para las pestañas
-        $encuestasActivas = $encuestas->where('estado', 'activa');
+        // Una encuesta está activa si su estado es 'activa' Y está dentro del rango de fechas
+        $encuestasActivas = $encuestas->filter(function($encuesta) {
+            return $encuesta->estado === 'activa'
+                && now() >= $encuesta->fecha_inicio
+                && (is_null($encuesta->fecha_fin) || now() <= $encuesta->fecha_fin);
+        });
+
         $encuestasPendientes = $encuestas->where('estado', 'borrador');
-        $encuestasCerradas = $encuestas->where('estado', 'cerrada');
+
+        // Una encuesta está cerrada si su estado es 'cerrada' O si pasó su fecha límite
+        $encuestasCerradas = $encuestas->filter(function($encuesta) {
+            return $encuesta->estado === 'cerrada'
+                || ($encuesta->estado === 'activa' && $encuesta->fecha_fin && now() > $encuesta->fecha_fin);
+        });
+
         $borradores = $encuestas->where('estado', 'borrador');
 
         return view('extranet.encuestas.index', compact('encuestas', 'encuestasActivas', 'encuestasPendientes', 'encuestasCerradas', 'borradores'));
@@ -75,7 +87,8 @@ class EncuestaController extends Controller
         $empleado = Auth::user()->empleados;
         $yaRespondio = false;
 
-        if ($empleado && !$encuesta->anonima) {
+        // SIEMPRE validar si ya respondió, independientemente si es anónima o no
+        if ($empleado) {
             $yaRespondio = $encuesta->respuestas()
                 ->where('empleado_id', $empleado->EMP_ID)
                 ->exists();
@@ -123,29 +136,45 @@ class EncuestaController extends Controller
     {
         $encuesta = Encuesta::with('preguntas')->findOrFail($id);
 
-        // Verificar que la encuesta esté activa
+        // Verificar que la encuesta esté activa y dentro del período válido
         if ($encuesta->estado !== 'activa') {
             return redirect()->route('extranet.encuestas.index')
                 ->with('error', 'Esta encuesta ya no está disponible para responder.');
         }
 
+        // Verificar que la encuesta esté dentro del período de respuesta
+        if (now() < $encuesta->fecha_inicio) {
+            return redirect()->route('extranet.encuestas.index')
+                ->with('error', 'Esta encuesta aún no ha iniciado.');
+        }
+
+        if ($encuesta->fecha_fin && now() > $encuesta->fecha_fin) {
+            return redirect()->route('extranet.encuestas.index')
+                ->with('error', 'El período para responder esta encuesta ha finalizado.');
+        }
+
         $empleado = Auth::user()->empleados;
 
-        // Verificar si ya respondió (solo para encuestas no anónimas)
-        if ($empleado && !$encuesta->anonima) {
-            $yaRespondio = $encuesta->respuestas()
-                ->where('empleado_id', $empleado->EMP_ID)
-                ->exists();
+        if (!$empleado) {
+            return redirect()->route('extranet.encuestas.index')
+                ->with('error', 'Debes tener un perfil de empleado para responder encuestas.');
+        }
 
-            if ($yaRespondio) {
-                return redirect()->route('extranet.encuestas.index')
-                    ->with('warning', 'Ya has respondido esta encuesta anteriormente.');
-            }
+        // SIEMPRE verificar si ya respondió, independientemente si es anónima o no
+        $yaRespondio = $encuesta->respuestas()
+            ->where('empleado_id', $empleado->EMP_ID)
+            ->exists();
+
+        if ($yaRespondio) {
+            return redirect()->route('extranet.encuestas.index')
+                ->with('warning', 'Ya has respondido esta encuesta anteriormente. Solo puedes responder una vez.');
         }
 
         $respuestas = $request->input('respuestas', []);
 
         // Guardar respuestas
+        // IMPORTANTE: Siempre guardamos el empleado_id para evitar respuestas duplicadas
+        // El flag "anonima" solo afecta si se muestra el nombre en los resultados
         foreach ($respuestas as $pregunta_id => $respuesta) {
             // Para checkboxes, la respuesta es un array
             if (is_array($respuesta)) {
@@ -155,7 +184,7 @@ class EncuestaController extends Controller
             \App\Models\Extranet\RespuestaEncuesta::create([
                 'encuesta_id' => $encuesta->id,
                 'pregunta_id' => $pregunta_id,
-                'empleado_id' => $encuesta->anonima ? null : ($empleado ? $empleado->EMP_ID : null),
+                'empleado_id' => $empleado->EMP_ID, // Siempre guardamos el empleado_id
                 'respuesta' => $respuesta,
             ]);
         }

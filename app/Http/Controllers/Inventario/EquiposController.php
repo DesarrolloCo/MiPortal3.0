@@ -15,6 +15,11 @@ use App\Models\area;
 use App\Models\sof_asignado;
 use App\Models\har_asignado;
 use App\Models\tipos_estados;
+use App\Exports\EquiposExport;
+use App\Exports\AsignacionesExport;
+use App\Exports\DevolucionesExport;
+use Maatwebsite\Excel\Facades\Excel;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class EquiposController extends Controller
 {
@@ -307,5 +312,384 @@ class EquiposController extends Controller
         //
         equipo::where('EQU_ID', $id)->update(['EQU_ESTADO' => '0']);
         return  redirect()->route('Equipo.index')->with('msjdelete', 'Equipo borrado correctamente!...');
+    }
+
+    /**
+     * Mostrar dashboard de inventario con estadísticas
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function dashboard()
+    {
+        // Estadísticas generales
+        $totalEquipos = equipo::where('EQU_ESTADO', 1)->count();
+        $equiposAsignados = equipo::whereHas('asignacionActiva')->count();
+        $equiposDisponibles = $totalEquipos - $equiposAsignados;
+
+        // Equipos por tipo
+        $equiposPropios = equipo::where('EQU_ESTADO', 1)
+            ->where('EQU_TIPO', 'Propio')
+            ->count();
+        $equiposAlquilados = equipo::where('EQU_ESTADO', 1)
+            ->where('EQU_TIPO', 'Alquilado')
+            ->count();
+
+        // Valor total del inventario
+        $valorTotal = equipo::where('EQU_ESTADO', 1)->sum('EQU_PRECIO');
+
+        // Equipos por área (top 5)
+        $equiposPorArea = DB::table('equipos')
+            ->join('areas', 'equipos.ARE_ID', '=', 'areas.ARE_ID')
+            ->where('equipos.EQU_ESTADO', 1)
+            ->select('areas.ARE_NOMBRE as area', DB::raw('COUNT(*) as total'))
+            ->groupBy('areas.ARE_NOMBRE')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        // Asignaciones recientes (últimas 10)
+        $asignacionesRecientes = DB::table('equ_asignados')
+            ->join('equipos', 'equ_asignados.EQU_ID', '=', 'equipos.EQU_ID')
+            ->join('empleados', 'equ_asignados.EMP_ID', '=', 'empleados.EMP_ID')
+            ->where('equ_asignados.EAS_ESTADO', 1)
+            ->select(
+                'equipos.EQU_NOMBRE',
+                'equipos.EQU_SERIAL',
+                'empleados.EMP_NOMBRES',
+                'equ_asignados.EAS_FECHA_ENTREGA',
+                'equ_asignados.EAS_ID'
+            )
+            ->orderByDesc('equ_asignados.created_at')
+            ->limit(10)
+            ->get();
+
+        // Devoluciones recientes (últimas 10)
+        $devolucionesRecientes = DB::table('devoluciones')
+            ->join('equ_asignados', 'devoluciones.EAS_ID', '=', 'equ_asignados.EAS_ID')
+            ->join('equipos', 'equ_asignados.EQU_ID', '=', 'equipos.EQU_ID')
+            ->join('empleados', 'equ_asignados.EMP_ID', '=', 'empleados.EMP_ID')
+            ->where('devoluciones.DEV_ESTADO', 1)
+            ->select(
+                'equipos.EQU_NOMBRE',
+                'equipos.EQU_SERIAL',
+                'empleados.EMP_NOMBRES',
+                'devoluciones.DEV_FECHA_DEVOLUCION',
+                'devoluciones.DEV_ESTADO_EQUIPO',
+                'devoluciones.DEV_ID'
+            )
+            ->orderByDesc('devoluciones.created_at')
+            ->limit(10)
+            ->get();
+
+        // Próximos mantenimientos (si existen)
+        $proximosMantenimientos = DB::table('mantenimiento')
+            ->join('equipos', 'mantenimiento.EQU_ID', '=', 'equipos.EQU_ID')
+            ->where('mantenimiento.MAN_ESTADO', 1)
+            ->whereNull('mantenimiento.MAN_FECHA_REALIZACION')
+            ->select(
+                'equipos.EQU_NOMBRE',
+                'equipos.EQU_SERIAL',
+                'mantenimiento.MAN_FECHA_AGENDADA',
+                'mantenimiento.MAN_TIPO'
+            )
+            ->orderBy('mantenimiento.MAN_FECHA_AGENDADA')
+            ->limit(5)
+            ->get();
+
+        // Estadísticas de devoluciones
+        $devolucionesEsteBueno = DB::table('devoluciones')
+            ->where('DEV_ESTADO', 1)
+            ->where('DEV_ESTADO_EQUIPO', 'Bueno')
+            ->count();
+        $devolucionesEstadoRegular = DB::table('devoluciones')
+            ->where('DEV_ESTADO', 1)
+            ->where('DEV_ESTADO_EQUIPO', 'Regular')
+            ->count();
+        $devolucionesEstadoMalo = DB::table('devoluciones')
+            ->where('DEV_ESTADO', 1)
+            ->where('DEV_ESTADO_EQUIPO', 'Malo')
+            ->count();
+
+        // Alertas de mantenimiento
+        $mantenimientosVencidos = \App\Models\mantenimiento::vencidos()
+            ->with('equipo')
+            ->get();
+
+        $mantenimientosUrgentes = \App\Models\mantenimiento::proximos(3) // Próximos 3 días
+            ->with('equipo')
+            ->get();
+
+        $totalMantenimientosProximos = \App\Models\mantenimiento::proximos(7)->count();
+
+        return view('Inventario.dashboard', compact(
+            'totalEquipos',
+            'equiposAsignados',
+            'equiposDisponibles',
+            'equiposPropios',
+            'equiposAlquilados',
+            'valorTotal',
+            'equiposPorArea',
+            'asignacionesRecientes',
+            'devolucionesRecientes',
+            'proximosMantenimientos',
+            'devolucionesEsteBueno',
+            'devolucionesEstadoRegular',
+            'devolucionesEstadoMalo',
+            'mantenimientosVencidos',
+            'mantenimientosUrgentes',
+            'totalMantenimientosProximos'
+        ));
+    }
+
+    /**
+     * Exportar lista de equipos a Excel
+     *
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportarEquipos()
+    {
+        return Excel::download(new EquiposExport, 'Equipos_' . date('Y-m-d_His') . '.xlsx');
+    }
+
+    /**
+     * Exportar asignaciones activas a Excel
+     *
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportarAsignaciones()
+    {
+        return Excel::download(new AsignacionesExport(true), 'Asignaciones_Activas_' . date('Y-m-d_His') . '.xlsx');
+    }
+
+    /**
+     * Exportar todas las asignaciones (activas e inactivas) a Excel
+     *
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportarTodasAsignaciones()
+    {
+        return Excel::download(new AsignacionesExport(false), 'Todas_Asignaciones_' . date('Y-m-d_His') . '.xlsx');
+    }
+
+    /**
+     * Exportar devoluciones a Excel
+     *
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportarDevoluciones()
+    {
+        return Excel::download(new DevolucionesExport, 'Devoluciones_' . date('Y-m-d_His') . '.xlsx');
+    }
+
+    /**
+     * Generar código QR para un equipo específico (mostrar en vista)
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function mostrarQR($id)
+    {
+        $equipo = equipo::findOrFail($id);
+
+        // URL que apuntará a los detalles del equipo
+        $url = route('Equipo.details', $id);
+
+        // Generar QR como SVG para mejor calidad en vista
+        $qrCode = QrCode::size(300)
+            ->style('round')
+            ->eye('circle')
+            ->margin(1)
+            ->generate($url);
+
+        return view('Inventario.Equipo.qr', compact('equipo', 'qrCode'));
+    }
+
+    /**
+     * Descargar código QR como imagen SVG
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function descargarQR($id)
+    {
+        $equipo = equipo::findOrFail($id);
+
+        // URL que apuntará a los detalles del equipo
+        $url = route('Equipo.details', $id);
+
+        // Generar QR como SVG para descarga (no requiere extensiones adicionales)
+        $qrCode = QrCode::format('svg')
+            ->size(500)
+            ->style('round')
+            ->eye('circle')
+            ->margin(2)
+            ->generate($url);
+
+        $fileName = 'QR_' . $equipo->EQU_SERIAL . '_' . date('Ymd') . '.svg';
+
+        return response($qrCode)
+            ->header('Content-Type', 'image/svg+xml')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+    }
+
+    /**
+     * Generar PDF con códigos QR de todos los equipos activos
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function generarQRMasivo()
+    {
+        $equipos = equipo::where('EQU_ESTADO', 1)
+            ->orderBy('EQU_NOMBRE')
+            ->get();
+
+        // Generar QR para cada equipo
+        $equiposConQR = $equipos->map(function($equipo) {
+            $url = route('Equipo.details', $equipo->EQU_ID);
+
+            $qrCode = QrCode::format('svg')
+                ->size(200)
+                ->style('round')
+                ->eye('circle')
+                ->margin(1)
+                ->generate($url);
+
+            return [
+                'equipo' => $equipo,
+                'qr' => $qrCode,
+            ];
+        });
+
+        // Generar PDF con todos los QR
+        $pdf = \PDF::loadView('Inventario.Equipo.qr_masivo', compact('equiposConQR'));
+        $pdf->setPaper('letter');
+
+        return $pdf->download('Codigos_QR_Equipos_' . date('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * Vista para escanear QR y buscar equipo
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function escaneadorQR()
+    {
+        return view('Inventario.Equipo.escaner_qr');
+    }
+
+    /**
+     * Mostrar historial completo de un equipo
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function historial($id)
+    {
+        $equipo = equipo::with([
+            'asignacionActiva',
+            'asignacionActiva.empleado'
+        ])->findOrFail($id);
+
+        // Obtener todas las asignaciones (activas e históricas)
+        $asignaciones = \App\Models\equ_asignado::with(['empleado', 'devoluciones'])
+            ->where('EQU_ID', $id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Obtener mantenimientos
+        $mantenimientos = \App\Models\mantenimiento::where('EQU_ID', $id)
+            ->orderBy('MAN_FECHA_AGENDADA', 'desc')
+            ->get();
+
+        // Obtener evidencias
+        $evidencias = \App\Models\evi_asignado::whereIn('EAS_ID', function($query) use ($id) {
+            $query->select('EAS_ID')
+                ->from('equ_asignados')
+                ->where('EQU_ID', $id);
+        })
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        // Obtener logs de auditoría si existen
+        $auditLogs = [];
+        if (class_exists('\App\Models\AuditLog')) {
+            $auditLogs = \App\Models\AuditLog::where('auditable_type', 'App\\Models\\equipo')
+                ->where('auditable_id', $id)
+                ->orderBy('created_at', 'desc')
+                ->limit(50)
+                ->get();
+        }
+
+        // Crear timeline unificado
+        $timeline = collect();
+
+        // Agregar asignaciones al timeline
+        foreach ($asignaciones as $asignacion) {
+            $timeline->push([
+                'tipo' => 'asignacion',
+                'fecha' => $asignacion->created_at,
+                'icono' => 'mdi-account-check',
+                'color' => 'success',
+                'titulo' => 'Asignación a ' . ($asignacion->empleado->EMP_NOMBRES ?? 'N/A'),
+                'descripcion' => 'Fecha de entrega: ' . ($asignacion->EAS_FECHA_ENTREGA ? $asignacion->EAS_FECHA_ENTREGA->format('d/m/Y') : 'N/A'),
+                'estado' => $asignacion->EAS_ESTADO == 1 ? 'Activa' : 'Finalizada',
+                'data' => $asignacion,
+            ]);
+
+            // Agregar devolución si existe
+            if ($asignacion->devolucionActiva) {
+                $devolucion = $asignacion->devolucionActiva;
+                $timeline->push([
+                    'tipo' => 'devolucion',
+                    'fecha' => $devolucion->created_at,
+                    'icono' => 'mdi-keyboard-return',
+                    'color' => 'warning',
+                    'titulo' => 'Devolución de equipo',
+                    'descripcion' => 'Estado: ' . $devolucion->DEV_ESTADO_EQUIPO,
+                    'estado' => $devolucion->DEV_OBSERVACIONES ?? '',
+                    'data' => $devolucion,
+                ]);
+            }
+        }
+
+        // Agregar mantenimientos al timeline
+        foreach ($mantenimientos as $mantenimiento) {
+            $timeline->push([
+                'tipo' => 'mantenimiento',
+                'fecha' => $mantenimiento->created_at,
+                'icono' => 'mdi-wrench',
+                'color' => $mantenimiento->MAN_FECHA_REALIZACION ? 'info' : 'primary',
+                'titulo' => 'Mantenimiento - ' . $mantenimiento->MAN_TIPO,
+                'descripcion' => 'Programado: ' . $mantenimiento->MAN_FECHA_AGENDADA->format('d/m/Y'),
+                'estado' => $mantenimiento->MAN_FECHA_REALIZACION ? 'Completado' : 'Pendiente',
+                'data' => $mantenimiento,
+            ]);
+        }
+
+        // Agregar evidencias al timeline
+        foreach ($evidencias as $evidencia) {
+            $timeline->push([
+                'tipo' => 'evidencia',
+                'fecha' => $evidencia->created_at,
+                'icono' => 'mdi-file-document',
+                'color' => 'secondary',
+                'titulo' => 'Evidencia: ' . $evidencia->EVI_NOMBRE,
+                'descripcion' => 'Fecha: ' . ($evidencia->EVI_FECHA ? $evidencia->EVI_FECHA->format('d/m/Y') : 'N/A'),
+                'estado' => '',
+                'data' => $evidencia,
+            ]);
+        }
+
+        // Ordenar timeline por fecha descendente
+        $timeline = $timeline->sortByDesc('fecha')->values();
+
+        return view('Inventario.Equipo.historial', compact(
+            'equipo',
+            'timeline',
+            'asignaciones',
+            'mantenimientos',
+            'evidencias',
+            'auditLogs'
+        ));
     }
 }

@@ -18,10 +18,24 @@
                     </div>
                     <div class="col-md-6 col-4 align-self-center">
                         <button class="btn float-right hidden-sm-down btn-success" data-toggle="modal" data-bs-toggle="modal" data-target="#Add_Equipos" data-bs-target="#Add_Equipos"><i class="mdi mdi-plus-circle"></i> Agregar</button>
-                        {{-- <div class="dropdown float-right mr-2 hidden-sm-down">
-                            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"> January 2019 </button>
-                            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton"> <a class="dropdown-item" href="#">February 2019</a> <a class="dropdown-item" href="#">March 2019</a> <a class="dropdown-item" href="#">April 2019</a> </div>
-                        </div> --}}
+
+                        <div class="btn-group float-right mr-2 hidden-sm-down" role="group">
+                            <button type="button" class="btn btn-warning dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="mdi mdi-qrcode"></i> Códigos QR
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <a class="dropdown-item" href="{{ route('Equipo.qr.masivo') }}">
+                                    <i class="mdi mdi-file-pdf"></i> Generar PDF con Todos los QR
+                                </a>
+                                <a class="dropdown-item" href="{{ route('Equipo.qr.escaner') }}">
+                                    <i class="mdi mdi-camera"></i> Escanear QR
+                                </a>
+                            </div>
+                        </div>
+
+                        <a href="{{ route('Inventario.exportar.equipos') }}" class="btn btn-info float-right mr-2 hidden-sm-down">
+                            <i class="mdi mdi-file-excel"></i> Exportar Excel
+                        </a>
                     </div>
                 </div>
                 <!-- ============================================================== -->
@@ -64,9 +78,13 @@
                                                                     <td>{{ $list->TIE_NOMBRE }}</td>
                                                                     <td>{{ $list->EQU_OBSERVACIONES }}</td>
                                                                     <td>
-                                                                        <a href="{{ route('Equipo.details',$list->EQU_ID) }}" class="btn btn-success"><i class="fas fa-eye"></i></a>
+                                                                        <a href="{{ route('Equipo.details',$list->EQU_ID) }}" class="btn btn-success" title="Ver detalles"><i class="fas fa-eye"></i></a>
 
-                                                                    <button type="button" class="btn btn-primary" rel="tooltip" data-toggle="modal" data-bs-toggle="modal" data-target="#Edit_Equipo{{ $list->EQU_ID }}" data-bs-target="#Edit_Equipo{{ $list->EQU_ID }}">
+                                                                    <a href="{{ route('Equipo.qr.mostrar', $list->EQU_ID) }}" class="btn btn-warning" title="Ver código QR"><i class="mdi mdi-qrcode"></i></a>
+
+                                                                    <a href="{{ route('Equipo.historial', $list->EQU_ID) }}" class="btn btn-info" title="Ver historial"><i class="mdi mdi-history"></i></a>
+
+                                                                    <button type="button" class="btn btn-primary" rel="tooltip" title="Editar" data-toggle="modal" data-bs-toggle="modal" data-target="#Edit_Equipo{{ $list->EQU_ID }}" data-bs-target="#Edit_Equipo{{ $list->EQU_ID }}">
                                                                         <i class="fas fa-edit"></i>
                                                                     </button>
 

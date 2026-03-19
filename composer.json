@@ -14,7 +14,9 @@
         "laravel/tinker": "^2.5",
         "laravel/ui": "^3.4",
         "laravelcollective/html": "^6.3",
+        "maatwebsite/excel": "^3.1",
         "phpoffice/phpspreadsheet": "^1.27",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-permission": "^5.10"
     },
     "require-dev": {

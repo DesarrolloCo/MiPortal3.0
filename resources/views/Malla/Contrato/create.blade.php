@@ -52,7 +52,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Fecha de finalizacion</label>
-                                <input type="date" ame="EMC_FECHA_FIN" id="EMC_FECHA_FIN" class="form-control" >
+                                <input type="date" name="EMC_FECHA_FIN" id="EMC_FECHA_FIN" class="form-control" >
                             </div>
                         </div>
                     </div>

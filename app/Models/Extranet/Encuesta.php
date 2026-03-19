@@ -18,7 +18,9 @@ class Encuesta extends Model
         'autor_id',
         'fecha_inicio',
         'fecha_fin',
-        'anonima',
+        'anonima', // NOTA: El flag "anonima" solo afecta la visualización de resultados.
+                   // Internamente SIEMPRE se guarda empleado_id para evitar respuestas duplicadas.
+                   // Cada usuario solo puede responder UNA VEZ por encuesta.
         'visible_para',
         'estado',
         'total_respuestas',

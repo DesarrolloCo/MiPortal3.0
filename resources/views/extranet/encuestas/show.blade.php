@@ -40,8 +40,9 @@
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">{{ $encuesta->titulo }}</h4>
                     @if($encuesta->anonima)
-                    <small><i class="mdi mdi-incognito"></i> Esta encuesta es anónima</small>
+                    <small><i class="mdi mdi-incognito"></i> Esta encuesta es anónima - Tu identidad no será revelada en los resultados</small>
                     @endif
+                    <small class="d-block mt-1"><i class="mdi mdi-information"></i> Solo puedes responder esta encuesta una vez</small>
                 </div>
                 <div class="card-body">
                     @if($encuesta->descripcion)

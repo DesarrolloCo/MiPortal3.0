@@ -170,6 +170,9 @@
                         <li class="nav-devider"></li>
                         <li class="nav-small-cap">  MI INVENTARIO</li>
                         <li>
+                            <a href="{{ route('Inventario.dashboard') }}" aria-expanded="false"><i class="mdi mdi-view-dashboard"></i><span class="hide-menu">Dashboard Inventario</span></a>
+                        </li>
+                        <li>
                             <a href="{{ route('Equipo.index') }}" aria-expanded="false"><i class="mdi mdi-cellphone-link"></i><span class="hide-menu">Equipos {{-- <span class="label label-rounded label-success">5</span> --}}</span></a>
                         </li>
                         <li>

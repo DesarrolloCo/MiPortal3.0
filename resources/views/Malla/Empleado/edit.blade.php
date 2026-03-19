@@ -1,9 +1,9 @@
 <!-- sample modal content -->
 <div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" id="Edit_Empleado{{ $list->EMP_ID }}" aria-hidden="true" style="display: none;">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-xl" style="max-width: 60% !important;">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="myLargeModalLabel">Agregar empleado</h4>
+                <h4 class="modal-title" id="myLargeModalLabel">Editar empleado</h4>
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
             </div>
             <div class="modal-body">

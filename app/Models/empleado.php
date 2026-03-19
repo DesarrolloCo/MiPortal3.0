@@ -39,6 +39,33 @@ class empleado extends Model
         return $this->hasMany(\App\Models\Extranet\Reconocimiento::class, 'empleado_id', 'EMP_ID');
     }
 
+    // Relaciones de Inventario
+
+    /**
+     * Obtiene todas las asignaciones de equipos del empleado
+     */
+    public function asignacionesEquipos()
+    {
+        return $this->hasMany(equ_asignado::class, 'EMP_ID', 'EMP_ID');
+    }
+
+    /**
+     * Obtiene las asignaciones activas de equipos del empleado
+     */
+    public function asignacionesActivas()
+    {
+        return $this->hasMany(equ_asignado::class, 'EMP_ID', 'EMP_ID')
+            ->where('EAS_ESTADO', 1);
+    }
+
+    /**
+     * Obtiene las devoluciones que este empleado ha recibido
+     */
+    public function devolucionesRecibidas()
+    {
+        return $this->hasMany(Devolucion::class, 'DEV_RECIBIDO_POR', 'EMP_ID');
+    }
+
     // Accessor para nombre completo
     public function getNombreCompletoAttribute(){
         return trim($this->EMP_NOMBRES . ' ' . $this->EMP_APELLIDOS);

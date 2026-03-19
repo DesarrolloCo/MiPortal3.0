@@ -1,6 +1,6 @@
 <!-- sample modal content -->
 <div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" id="Add_Empleado" aria-hidden="true" style="display: none;">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-xl" style="max-width: 60% !important;">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="myLargeModalLabel">Agregar empleado</h4>
@@ -30,7 +30,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label>Municipio de expedición</label>
+                                <label>Departamento de expedición</label>
                                 <select name="MUN_ID" id="MUN_ID" class="form-control">
                                     <option class="form-control" disabled selected>-- Seleccione --</option>
                                 </select>
@@ -82,6 +82,7 @@
                                 <input type="date" class="form-control" id="EMP_FECHA_NACIMIENTO" name="EMP_FECHA_NACIMIENTO">
                             </div>
                         </div>
+                        
                     </div>
 
                     <div class="row">

@@ -57,56 +57,13 @@
                                                                         </button>
                                                                         @endcan
 
-                                                                        {{-- Modal de edición --}}
-
                                                                         @php
                                                                             $rolePermissions = DB::table("role_has_permissions")->where("role_has_permissions.role_id",$Rol->id)
                                                                                 ->pluck('role_has_permissions.permission_id','role_has_permissions.permission_id')
                                                                                 ->all();
                                                                         @endphp
 
-                                                                            <!-- .modal for add task -->
-                                                                            <div class="modal fade" id="Edit_Rol{{ $Rol->id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                                                                                <div class="modal-dialog" role="document">
-                                                                                    <div class="modal-content">
-                                                                                        <div class="modal-header">
-                                                                                           <h1 class="modal-title fs-5" id="exampleModalLabel">Editar permisos</h1>
-                                                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                                                                <span aria-hidden="true">&times;</span>
-                                                                                            </button>
-                                                                                        </div>
-                                                                                        <div class="modal-body">
-                                                                                            {!! Form::model($Roles, ['method' => 'PATCH','route' => ['Roles.update', $Rol->id]]) !!}
-                                                                                            <div class="row">
-
-                                                                                                <div class="form-group">
-                                                                                                    <label>Nombre del Rol:</label>
-                                                                                                    {!! Form::text('name', $Rol->name, array('class' => 'form-control')) !!}
-                                                                                                </div>
-
-                                                                                                <div class="col-xs-12 col-sm-12 col-md-12">
-                                                                                                    <div class="form-group">
-                                                                                                        <label for="">Permisos para este Rol:</label>
-                                                                                                        <br/>
-                                                                                                        @foreach($Permissions as $value)
-                                                                                                            <label>{{ Form::checkbox('permission[]', $value->id, in_array($value->id, $rolePermissions) ? true : false, array('class' => 'name')) }}
-                                                                                                            {{ $value->name }}</label>
-                                                                                                        <br/>
-                                                                                                        @endforeach
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            <button type="submit" class="btn btn-primary">Guardar</button>
-                                                                                            {!! Form::close() !!}
-                                                                                        </div>
-
-                                                                                    </div>
-                                                                                    <!-- /.modal-content -->
-                                                                                </div>
-                                                                                <!-- /.modal-dialog -->
-                                                                            </div>
-                                                                            <!-- /.modal -->
-                                                                        {{-- Modal de edición --}}
+                                                                        @include('main.Roles.edit', ['Roles' => $Rol, 'Rol' => $Rol, 'rolePermissions' => $rolePermissions])
 
                                                                         @can('borrar-rol')
                                                                             <form action="{{ route('Roles.destroy', $Rol->id) }}" method="POST"
@@ -123,7 +80,6 @@
                                                                         @endcan
                                                                     </td>
                                                                 </tr>
-                                                               {{--  @include('main.Roles.edit') --}}
                                                             @endforeach
 
                                                             {{-- <tr>

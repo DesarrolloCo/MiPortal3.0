@@ -35,7 +35,7 @@
             <ul class="nav nav-tabs" role="tablist">
                 <li class="nav-item">
                     <a class="nav-link active" data-toggle="tab" href="#activas" role="tab">
-                        <i class="mdi mdi-play-circle"></i> Activas ({{ $encuestas->where('estado', 'activa')->count() }})
+                        <i class="mdi mdi-play-circle"></i> Activas ({{ $encuestasActivas->count() }})
                     </a>
                 </li>
                 <li class="nav-item">
@@ -45,13 +45,13 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" data-toggle="tab" href="#cerradas" role="tab">
-                        <i class="mdi mdi-check-circle"></i> Cerradas ({{ $encuestas->where('estado', 'cerrada')->count() }})
+                        <i class="mdi mdi-check-circle"></i> Cerradas ({{ $encuestasCerradas->count() }})
                     </a>
                 </li>
                 @can('crear-encuesta')
                 <li class="nav-item">
                     <a class="nav-link" data-toggle="tab" href="#borradores" role="tab">
-                        <i class="mdi mdi-file-document-outline"></i> Borradores ({{ $encuestas->where('estado', 'borrador')->count() }})
+                        <i class="mdi mdi-file-document-outline"></i> Borradores ({{ $borradores->count() }})
                     </a>
                 </li>
                 @endcan
@@ -61,7 +61,7 @@
                 <!-- Encuestas Activas -->
                 <div class="tab-pane active p-4" id="activas" role="tabpanel">
                     <div class="row">
-                        @forelse($encuestas->where('estado', 'activa') as $encuesta)
+                        @forelse($encuestasActivas as $encuesta)
                         <div class="col-md-6 col-lg-4 mb-4">
                             @include('extranet.encuestas.partials.card-encuesta', ['encuesta' => $encuesta])
                         </div>
@@ -99,7 +99,7 @@
                 <!-- Encuestas Cerradas -->
                 <div class="tab-pane p-4" id="cerradas" role="tabpanel">
                     <div class="row">
-                        @forelse($encuestas->where('estado', 'cerrada') as $encuesta)
+                        @forelse($encuestasCerradas as $encuesta)
                         <div class="col-md-6 col-lg-4 mb-4">
                             @include('extranet.encuestas.partials.card-encuesta', ['encuesta' => $encuesta])
                         </div>
@@ -118,7 +118,7 @@
                 @can('crear-encuesta')
                 <div class="tab-pane p-4" id="borradores" role="tabpanel">
                     <div class="row">
-                        @forelse($encuestas->where('estado', 'borrador') as $encuesta)
+                        @forelse($borradores as $encuesta)
                         <div class="col-md-6 col-lg-4 mb-4">
                             @include('extranet.encuestas.partials.card-encuesta', ['encuesta' => $encuesta])
                         </div>

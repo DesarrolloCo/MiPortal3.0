@@ -16,15 +16,75 @@
                     </div>
                     <div class="col-md-6 col-4 align-self-center">
                         <button class="btn float-right hidden-sm-down btn-success" data-toggle="modal" data-target="#Add_Equ_asignado"><i class="mdi mdi-plus-circle"></i> Agregar</button>
-                        {{-- <div class="dropdown float-right mr-2 hidden-sm-down">
-                            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"> January 2019 </button>
-                            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton"> <a class="dropdown-item" href="#">February 2019</a> <a class="dropdown-item" href="#">March 2019</a> <a class="dropdown-item" href="#">April 2019</a> </div>
-                        </div> --}}
+                        <div class="btn-group float-right mr-2 hidden-sm-down" role="group">
+                            <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="mdi mdi-file-excel"></i> Exportar
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <a class="dropdown-item" href="{{ route('Inventario.exportar.asignaciones') }}">
+                                    <i class="mdi mdi-account-check"></i> Solo Activas
+                                </a>
+                                <a class="dropdown-item" href="{{ route('Inventario.exportar.todas_asignaciones') }}">
+                                    <i class="mdi mdi-view-list"></i> Todas las Asignaciones
+                                </a>
+                                <a class="dropdown-item" href="{{ route('Inventario.exportar.devoluciones') }}">
+                                    <i class="mdi mdi-keyboard-return"></i> Devoluciones
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <!-- ============================================================== -->
                 <!-- End Bread crumb and right sidebar toggle -->
                 <!-- ============================================================== -->
+
+                <!-- Alertas de mensajes -->
+                @if(session('success'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <strong>Éxito!</strong> {{ session('success') }}
+                            @if(session('devolucion_id'))
+                                <br>
+                                <a href="{{ route('Asignacion_equipo.acta_devolucion', session('devolucion_id')) }}"
+                                   class="btn btn-sm btn-success mt-2">
+                                    <i class="mdi mdi-file-pdf"></i> Descargar Acta de Devolución
+                                </a>
+                            @endif
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(session('error'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <strong>Error!</strong> {{ session('error') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(session('warning'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <strong>Advertencia!</strong> {{ session('warning') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <!-- ============================================================== -->
                 <!-- Start Page Content -->
                 <!-- ============================================================== -->
@@ -54,9 +114,16 @@
                                                 <td>{{$row->EQU_SERIAL}}</td>
                                                 <td>{{$row->EAS_FECHA_ENTREGA}}</td>
                                                 <td>
-                                                    <button type="button" class="btn btn-primary" rel="tooltip" data-toggle="modal" data-target="#Edit_asg_equ{{ $row->EAS_ID }}">
+                                                    <button type="button" class="btn btn-primary" rel="tooltip" data-toggle="modal" data-target="#Edit_asg_equ{{ $row->EAS_ID }}" title="Agregar evidencia">
                                                         <i class="mdi mdi-attachment"></i>
                                                     </button>
+
+                                                    @if($row->EAS_ESTADO == '1')
+                                                    <button type="button" class="btn btn-warning" rel="tooltip" data-toggle="modal" data-target="#Devolver_equ{{ $row->EAS_ID }}" title="Registrar devolución">
+                                                        <i class="mdi mdi-keyboard-return"></i>
+                                                    </button>
+                                                    @endif
+
                                                     <form action="{{ route('Asignacion_equipo.delete', $row->EAS_ID) }}" method="POST"
                                                         style="display: inline-block; ">
                                                         @csrf
@@ -71,6 +138,7 @@
                                                 </td>
                                             </tr>
                                             @include('Inventario.Asignacion_equipo.edit')
+                                            @include('Inventario.Asignacion_equipo.devolver')
                                         @endforeach
                                     </tbody>
                                 </table>

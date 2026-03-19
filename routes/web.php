@@ -196,6 +196,7 @@ Route::get('/Reportes/general/fecha',[App\Http\Controllers\Malla\ReportesControl
 Route::get('/Equipos', [App\Http\Controllers\Inventario\EquiposController::class, 'index'])->name('Equipo.index');
 Route::put('/Inventario/Equipos/update/{id}', [App\Http\Controllers\Inventario\EquiposController::class, 'update'])->name('Equipo.update');
 Route::get('/Equipos_details/{id}', [App\Http\Controllers\Inventario\EquiposController::class, 'details'])->name('Equipo.details');
+Route::get('/Equipos_historial/{id}', [App\Http\Controllers\Inventario\EquiposController::class, 'historial'])->name('Equipo.historial');
 Route::post('/Inventario/Equipos', [App\Http\Controllers\Inventario\EquiposController::class, 'create'])->name('Equipo.create');
 Route::post('/Inventario/Software', [App\Http\Controllers\Inventario\EquiposController::class, 'software'])->name('Equipo.software');
 Route::post('/Inventario/Hardware', [App\Http\Controllers\Inventario\EquiposController::class, 'hardware'])->name('Equipo.hardware');
@@ -203,6 +204,19 @@ Route::delete('/Inventario/Equipos/delete/{id}', [App\Http\Controllers\Inventari
 Route::put('/Inventario/Equipos/change/{id}', [App\Http\Controllers\Inventario\EquiposController::class, 'change'])->name('Equipo.change');
 Route::get('/cv/{id}',[App\Http\Controllers\Inventario\EquiposController::class, 'cv'])->name('Equipo.cv');
 Route::get('/previsualizar-pdf/{id}', [App\Http\Controllers\Inventario\EquiposController::class, 'previsualizarPDF'])->name('Equipo.evidencia');
+Route::get('/Inventario/Dashboard', [App\Http\Controllers\Inventario\EquiposController::class, 'dashboard'])->name('Inventario.dashboard');
+
+//INVENTARIO :: EXPORTACIONES A EXCEL
+Route::get('/Inventario/Exportar/Equipos', [App\Http\Controllers\Inventario\EquiposController::class, 'exportarEquipos'])->name('Inventario.exportar.equipos');
+Route::get('/Inventario/Exportar/Asignaciones', [App\Http\Controllers\Inventario\EquiposController::class, 'exportarAsignaciones'])->name('Inventario.exportar.asignaciones');
+Route::get('/Inventario/Exportar/Todas-Asignaciones', [App\Http\Controllers\Inventario\EquiposController::class, 'exportarTodasAsignaciones'])->name('Inventario.exportar.todas_asignaciones');
+Route::get('/Inventario/Exportar/Devoluciones', [App\Http\Controllers\Inventario\EquiposController::class, 'exportarDevoluciones'])->name('Inventario.exportar.devoluciones');
+
+//INVENTARIO :: CÓDIGOS QR
+Route::get('/Inventario/Equipo/QR/{id}', [App\Http\Controllers\Inventario\EquiposController::class, 'mostrarQR'])->name('Equipo.qr.mostrar');
+Route::get('/Inventario/Equipo/QR/{id}/descargar', [App\Http\Controllers\Inventario\EquiposController::class, 'descargarQR'])->name('Equipo.qr.descargar');
+Route::get('/Inventario/Equipo/QR-Masivo', [App\Http\Controllers\Inventario\EquiposController::class, 'generarQRMasivo'])->name('Equipo.qr.masivo');
+Route::get('/Inventario/Escaner-QR', [App\Http\Controllers\Inventario\EquiposController::class, 'escaneadorQR'])->name('Equipo.qr.escaner');
 
 //INVENTARIO :: ASIGANCION EQUIPOS
 Route::get('/Asigancion_equipos', [App\Http\Controllers\Inventario\Equ_asignadoController::class, 'index'])->name('Asignacion_equipo.index');
@@ -210,6 +224,8 @@ Route::put('/Inventario/Asigancion_equipos/update/{id}', [App\Http\Controllers\I
 Route::post('/Inventario/Asigancion_equipos', [App\Http\Controllers\Inventario\Equ_asignadoController::class, 'create'])->name('Asignacion_equipo.create');
 Route::delete('/Inventario/Asigancion_equipos/delete/{id}', [App\Http\Controllers\Inventario\Equ_asignadoController::class, 'destroy'])->name('Asignacion_equipo.delete');
 Route::post('/Inventario/Asigancion_equipos2', [App\Http\Controllers\Inventario\Equ_asignadoController::class, 'evidencia'])->name('Asignacion_equipo.create2');
+Route::post('/Inventario/Asigancion_equipos/devolver/{id}', [App\Http\Controllers\Inventario\Equ_asignadoController::class, 'devolver'])->name('Asignacion_equipo.devolver');
+Route::get('/Inventario/Devoluciones/acta/{id}', [App\Http\Controllers\Inventario\Equ_asignadoController::class, 'generarActaDevolucion'])->name('Asignacion_equipo.acta_devolucion');
 
 //INVENTARIO :: MANTENIMIENTO
 Route::get('/Mantenimiento', [App\Http\Controllers\Inventario\MantenimientoController::class, 'index'])->name('Mantenimiento.index');

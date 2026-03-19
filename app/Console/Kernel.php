@@ -15,7 +15,15 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Cerrar encuestas vencidas cada hora
+        $schedule->command('extranet:cerrar-encuestas-vencidas')
+            ->hourly()
+            ->withoutOverlapping();
+
+        // Verificar mantenimientos próximos y vencidos (diariamente a las 8:00 AM)
+        $schedule->command('mantenimiento:verificar-proximos --dias=7')
+            ->dailyAt('08:00')
+            ->withoutOverlapping();
     }
 
     /**
