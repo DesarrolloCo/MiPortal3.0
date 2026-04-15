@@ -127,7 +127,7 @@
                                 </div>
 
                                 <!-- Descripción -->
-                                <div class="col-lg-12 col-md-12">
+                                <div class="col-lg-8 col-md-8">
                                     <div class="form-group">
                                         <label for="NOV_DESCRIPCION" class="form-label required">
                                             <i class="mdi mdi-text-long me-1"></i>Descripción de la Novedad
@@ -140,6 +140,25 @@
                                             Proporcione todos los detalles relevantes sobre la novedad
                                         </div>
                                         @error('NOV_DESCRIPCION')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+
+                                <!-- Fecha de la Novedad -->
+                                <div class="col-lg-4 col-md-4">
+                                    <div class="form-group">
+                                        <label for="NOV_FECHA" class="form-label" id="nov-fecha-label">
+                                            <i class="mdi mdi-calendar me-1"></i>Fecha de la Novedad
+                                        </label>
+                                        <input type="date" name="NOV_FECHA" id="NOV_FECHA"
+                                            class="form-control form-control-lg @error('NOV_FECHA') is-invalid @enderror"
+                                            value="{{ old('NOV_FECHA', \Carbon\Carbon::now('America/Bogota')->toDateString()) }}">
+                                        <div class="form-text">
+                                            <i class="mdi mdi-information-outline"></i>
+                                            Fecha en que ocurre la novedad
+                                        </div>
+                                        @error('NOV_FECHA')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
@@ -165,6 +184,50 @@
                                 <div id="horarios-message" class="alert alert-info">
                                     Selecciona un empleado y, opcionalmente, ajusta la fecha para filtrar los horarios
                                     disponibles.
+                                </div>
+
+                                <!-- Mensaje cuando no hay horarios disponibles -->
+                                <div id="no-horarios-message" class="alert alert-warning d-none">
+                                    <i class="mdi mdi-information-outline me-2"></i>
+                                    <strong>El empleado seleccionado no tiene horarios asignados en el período consultado.</strong><br>
+                                    Puedes registrar la novedad definiendo manualmente el período de tiempo afectado.
+                                </div>
+
+                                <!-- Campos para definir horario manual cuando no hay malla -->
+                                <div id="manual-schedule-section" class="d-none">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="hora_inicio_manual" class="form-label required">
+                                                    <i class="mdi mdi-clock-start me-1"></i>Hora Inicio
+                                                </label>
+                                                <input type="time" name="hora_inicio_manual" id="hora_inicio_manual"
+                                                       class="form-control form-control-lg @error('hora_inicio_manual') is-invalid @enderror"
+                                                       value="{{ old('hora_inicio_manual') }}">
+                                                @error('hora_inicio_manual')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="hora_fin_manual" class="form-label required">
+                                                    <i class="mdi mdi-clock-end me-1"></i>Hora Fin
+                                                </label>
+                                                <input type="time" name="hora_fin_manual" id="hora_fin_manual"
+                                                       class="form-control form-control-lg @error('hora_fin_manual') is-invalid @enderror"
+                                                       value="{{ old('hora_fin_manual') }}">
+                                                @error('hora_fin_manual')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info">
+                                        <i class="mdi mdi-information-outline me-2"></i>
+                                        <strong>Nota:</strong> Al registrar esta novedad, se creará automáticamente un bloqueo de horario
+                                        para el período especificado, el cual aparecerá en el calendario del empleado como un evento bloqueado.
+                                    </div>
                                 </div>
 
                                 <div class="row align-items-end mb-3">
@@ -706,6 +769,8 @@
             const selectAllBtn = document.getElementById('select-all-schedules');
             const clearAllBtn = document.getElementById('clear-all-schedules');
             const horariosMessage = document.getElementById('horarios-message');
+            const noHorariosMessage = document.getElementById('no-horarios-message');
+            const manualScheduleSection = document.getElementById('manual-schedule-section');
             const horariosWrapper = document.getElementById('horarios-table-wrapper');
             const horariosBody = document.getElementById('horarios-body');
             const horariosEndpointTemplate = "{{ route('Novedades.horariosEmpleado', ['empleado' => '__ID__']) }}";
@@ -733,6 +798,8 @@
 
                 horariosBody.innerHTML = '';
                 horariosWrapper.classList.add('d-none');
+                noHorariosMessage.classList.add('d-none');
+                manualScheduleSection.classList.add('d-none');
                 horariosMessage.classList.remove('alert-danger', 'alert-success');
                 horariosMessage.classList.add('alert-info');
 
@@ -788,8 +855,16 @@
                 if (!horarios.length) {
                     horariosMessage.textContent = 'No se encontraron horarios para la combinación seleccionada.';
                     horariosWrapper.classList.add('d-none');
+
+                    // Mostrar mensaje y campos manuales para creación de novedad sin horarios
+                    noHorariosMessage.classList.remove('d-none');
+                    manualScheduleSection.classList.remove('d-none');
                     return;
                 }
+
+                // Ocultar mensaje y campos manuales si hay horarios disponibles
+                noHorariosMessage.classList.add('d-none');
+                manualScheduleSection.classList.add('d-none');
 
                 horariosMessage.textContent = 'Selecciona los horarios que deseas asociar a la novedad.';
                 horariosMessage.classList.remove('alert-danger', 'alert-success');
@@ -909,6 +984,35 @@
 
             if (empleadosSelect?.value) {
                 loadHorarios();
+            }
+
+            // Agregar validación para campos manuales
+            const horaInicioManual = document.getElementById('hora_inicio_manual');
+            const horaFinManual = document.getElementById('hora_fin_manual');
+            const novFecha = document.getElementById('NOV_FECHA');
+
+            // Hacer campos requeridos cuando la sección manual está visible
+            function updateManualFieldsRequired() {
+                const isVisible = !manualScheduleSection.classList.contains('d-none');
+                if (horaInicioManual) horaInicioManual.required = isVisible;
+                if (horaFinManual) horaFinManual.required = isVisible;
+                if (novFecha) novFecha.required = isVisible;
+
+                // Actualizar la etiqueta del campo fecha
+                const fechaLabel = document.getElementById('nov-fecha-label');
+                if (fechaLabel) {
+                    if (isVisible) {
+                        fechaLabel.classList.add('required');
+                    } else {
+                        fechaLabel.classList.remove('required');
+                    }
+                }
+            }
+
+            // Observar cambios en la visibilidad de la sección manual
+            const observer = new MutationObserver(updateManualFieldsRequired);
+            if (manualScheduleSection) {
+                observer.observe(manualScheduleSection, { attributes: true, attributeFilter: ['class'] });
             }
         }
 

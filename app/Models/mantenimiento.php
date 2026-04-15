@@ -10,26 +10,23 @@ class mantenimiento extends Model
 {
     use HasFactory;
 
-    protected $table = 'mantenimiento';
+    protected $table = 'mantenimientos';
 
     protected $primaryKey = 'MAN_ID';
 
     protected $fillable = [
         'EQU_ID',
-        'MAN_TIPO',
-        'MAN_FECHA_AGENDADA',
-        'MAN_FECHA_REALIZACION',
-        'MAN_DESCRIPCION',
         'MAN_PROVEEDOR',
-        'MAN_COSTO',
-        'MAN_OBSERVACIONES',
+        'MAN_FECHA',
+        'MAN_TECNICO',
+        'MAN_STATUS',
         'MAN_ESTADO',
     ];
 
     protected $casts = [
-        'MAN_FECHA_AGENDADA' => 'date',
-        'MAN_FECHA_REALIZACION' => 'date',
-        'MAN_COSTO' => 'decimal:2',
+        'MAN_FECHA' => 'date',
+        'MAN_TECNICO' => 'integer',
+        'MAN_STATUS' => 'integer',
         'MAN_ESTADO' => 'integer',
     ];
 
@@ -51,7 +48,7 @@ class mantenimiento extends Model
     public function scopeActivos($query)
     {
         return $query->where('MAN_ESTADO', 1)
-            ->whereNull('MAN_FECHA_REALIZACION');
+            ->where('MAN_STATUS', 1);
     }
 
     /**
@@ -60,7 +57,7 @@ class mantenimiento extends Model
     public function scopeCompletados($query)
     {
         return $query->where('MAN_ESTADO', 1)
-            ->whereNotNull('MAN_FECHA_REALIZACION');
+            ->where('MAN_STATUS', 2);
     }
 
     /**
@@ -69,9 +66,9 @@ class mantenimiento extends Model
     public function scopeProximos($query, $dias = 7)
     {
         return $query->activos()
-            ->where('MAN_FECHA_AGENDADA', '>=', Carbon::now())
-            ->where('MAN_FECHA_AGENDADA', '<=', Carbon::now()->addDays($dias))
-            ->orderBy('MAN_FECHA_AGENDADA');
+            ->where('MAN_FECHA', '>=', Carbon::now())
+            ->where('MAN_FECHA', '<=', Carbon::now()->addDays($dias))
+            ->orderBy('MAN_FECHA');
     }
 
     /**
@@ -80,8 +77,8 @@ class mantenimiento extends Model
     public function scopeVencidos($query)
     {
         return $query->activos()
-            ->where('MAN_FECHA_AGENDADA', '<', Carbon::now())
-            ->orderBy('MAN_FECHA_AGENDADA', 'desc');
+            ->where('MAN_FECHA', '<', Carbon::now())
+            ->orderBy('MAN_FECHA', 'desc');
     }
 
     // Métodos de ayuda
@@ -91,11 +88,11 @@ class mantenimiento extends Model
      */
     public function estaProximo()
     {
-        if (!$this->MAN_FECHA_AGENDADA || $this->MAN_FECHA_REALIZACION) {
+        if (!$this->MAN_FECHA || $this->MAN_STATUS == 2) {
             return false;
         }
 
-        $diasRestantes = Carbon::now()->diffInDays($this->MAN_FECHA_AGENDADA, false);
+        $diasRestantes = Carbon::now()->diffInDays($this->MAN_FECHA, false);
         return $diasRestantes >= 0 && $diasRestantes <= 7;
     }
 
@@ -104,11 +101,11 @@ class mantenimiento extends Model
      */
     public function estaVencido()
     {
-        if (!$this->MAN_FECHA_AGENDADA || $this->MAN_FECHA_REALIZACION) {
+        if (!$this->MAN_FECHA || $this->MAN_STATUS == 2) {
             return false;
         }
 
-        return $this->MAN_FECHA_AGENDADA < Carbon::now();
+        return $this->MAN_FECHA < Carbon::now();
     }
 
     /**
@@ -116,11 +113,11 @@ class mantenimiento extends Model
      */
     public function diasRestantes()
     {
-        if (!$this->MAN_FECHA_AGENDADA || $this->MAN_FECHA_REALIZACION) {
+        if (!$this->MAN_FECHA || $this->MAN_STATUS == 2) {
             return null;
         }
 
-        return Carbon::now()->diffInDays($this->MAN_FECHA_AGENDADA, false);
+        return Carbon::now()->diffInDays($this->MAN_FECHA, false);
     }
 
     /**

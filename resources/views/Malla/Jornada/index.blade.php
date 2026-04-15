@@ -15,7 +15,9 @@
                         </ol>
                     </div>
                     <div class="col-md-6 col-4 align-self-center">
-                        <button class="btn float-right hidden-sm-down btn-success" data-toggle="modal" data-bs-toggle="modal" data-target="#Add_Jornada" data-bs-target="#Add_Jornada"><i class="mdi mdi-plus-circle"></i> Agregar</button>
+                         @can('crear-jornada')
+                         <button class="btn float-right hidden-sm-down btn-success" data-toggle="modal" data-bs-toggle="modal" data-target="#Add_Jornada" data-bs-target="#Add_Jornada"><i class="mdi mdi-plus-circle"></i> Agregar</button>
+                         @endcan
                         {{-- <div class="dropdown float-right mr-2 hidden-sm-down">
                             <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"> January 2019 </button>
                             <div class="dropdown-menu" aria-labelledby="dropdownMenuButton"> <a class="dropdown-item" href="#">February 2019</a> <a class="dropdown-item" href="#">March 2019</a> <a class="dropdown-item" href="#">April 2019</a> </div>
@@ -35,7 +37,7 @@
 
                                 <!-- column -->
                                 <div class="table-responsive">
-                                    <table class="table no-wrap display responsive nowrap" id="table_equipos">
+                                    <table class="table no-wrap display responsive nowrap" id="table_jornadas">
                                         <thead>
                                             <tr>
                                                 <th>Nombres</th>
@@ -46,24 +48,25 @@
                                             @foreach ($jornadas as $list)
                                             <tr>
                                                 <td>{{ $list->JOR_NOMBRE }}</td>
-                                                <td>
+                                                 <td>
+                                                     @can('opciones-jornada')
+                                                     <form action="{{ route('Jornada.delete', $list->JOR_ID) }}" method="POST"
+                                                         style="display: inline-block; ">
+                                                         @csrf
+                                                         @method('DELETE')
 
-                                                    <form action="{{ route('Jornada.delete', $list->JOR_ID) }}" method="POST"
-                                                        style="display: inline-block; ">
-                                                        @csrf
-                                                        @method('DELETE')
+                                                         <button type="submit" class="btn btn-danger" rel="tooltip"
+                                                             onclick="return confirm('Seguro que quiere eliminar esta jornada?') ">
+                                                             <i class="fas fa-trash-alt" title="Eliminar Registro"></i>
+                                                         </button>
 
-                                                        <button type="submit" class="btn btn-danger" rel="tooltip"
-                                                            onclick="return confirm('Seguro que quiere eliminar esta jornada?') ">
-                                                            <i class="fas fa-trash-alt" title="Eliminar Registro"></i>
-                                                        </button>
+                                                     </form>
 
-                                                    </form>
-
-                                                    <button type="button" class="btn btn-primary" rel="tooltip" data-toggle="modal" data-bs-toggle="modal" data-target="#EditJornada{{ $list->JOR_ID }}" data-bs-target="#EditJornada{{ $list->JOR_ID }}">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                </td>
+                                                     <button type="button" class="btn btn-primary" rel="tooltip" data-toggle="modal" data-bs-toggle="modal" data-target="#EditJornada{{ $list->JOR_ID }}" data-bs-target="#EditJornada{{ $list->JOR_ID }}">
+                                                         <i class="fas fa-edit"></i>
+                                                     </button>
+                                                     @endcan
+                                                 </td>
                                             </tr>
                                             @include('Malla.Jornada.edit')
                                         @endforeach

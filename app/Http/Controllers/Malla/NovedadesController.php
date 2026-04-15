@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 use App\Models\novedade;
 use App\Models\tipos_novedade;
@@ -114,28 +115,60 @@ class NovedadesController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'TIN_ID' => 'required|exists:tipos_novedades,TIN_ID',
-            'EMP_ID' => 'required|exists:empleados,EMP_ID',
-            'NOV_DESCRIPCION' => 'required|string',
-            'NOV_FECHA' => 'nullable|date',
-            'horarios' => 'nullable|array',
-            'horarios.*' => 'integer|exists:mallas,MAL_ID',
-            'archivos.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120'
+        Log::info("Iniciando creación de novedad", [
+            'all_data' => $request->all(),
+            'hora_inicio_manual' => $request->hora_inicio_manual,
+            'hora_fin_manual' => $request->hora_fin_manual,
+            'nov_fecha' => $request->NOV_FECHA,
+            'horarios' => $request->horarios
         ]);
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
 
         $horariosSeleccionados = collect($request->input('horarios', []))
             ->filter()
             ->map(fn ($id) => (int) $id)
             ->unique();
 
-        if ((!$request->has('accion') || $request->accion !== 'desactivar_horario') && $horariosSeleccionados->isEmpty()) {
-            return back()->withErrors(['horarios' => 'Debe seleccionar al menos un horario'])->withInput();
+        // Construir reglas de validación dinámicas
+        $rules = [
+            'TIN_ID' => 'required|exists:tipos_novedades,TIN_ID',
+            'EMP_ID' => 'required|exists:empleados,EMP_ID',
+            'NOV_DESCRIPCION' => 'required|string',
+            'horarios' => 'nullable|array',
+            'horarios.*' => 'integer|exists:mallas,MAL_ID',
+            'archivos.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120'
+        ];
+
+        $messages = [];
+
+        // Agregar validaciones para campos manuales si no hay horarios seleccionados
+        if ($horariosSeleccionados->isEmpty()) {
+            $rules = array_merge($rules, [
+                'hora_inicio_manual' => 'required|date_format:H:i',
+                'hora_fin_manual' => 'required|date_format:H:i|after:hora_inicio_manual',
+                'NOV_FECHA' => 'required|date'
+            ]);
+
+            $messages = [
+                'hora_inicio_manual.required' => 'La hora de inicio es obligatoria cuando no hay horarios asignados.',
+                'hora_fin_manual.required' => 'La hora de fin es obligatoria cuando no hay horarios asignados.',
+                'hora_fin_manual.after' => 'La hora de fin debe ser posterior a la hora de inicio.',
+                'NOV_FECHA.required' => 'La fecha es obligatoria para crear el bloqueo de horario.'
+            ];
+        } else {
+            $rules['NOV_FECHA'] = 'nullable|date';
         }
+
+        $validator = Validator::make($request->all(), $rules, $messages);
+
+        if ($validator->fails()) {
+            Log::warning("Validación fallida", [
+                'errors' => $validator->errors()->toArray(),
+                'request_data' => $request->all()
+            ]);
+            return back()->withErrors($validator)->withInput();
+        }
+
+        Log::info("Validación exitosa, procesando novedad");
 
         $archivos = [];
         if ($request->hasFile('archivos')) {
@@ -175,10 +208,48 @@ class NovedadesController extends Controller
             'NOV_ESTADO_APROBACION' => 'pendiente'
         ];
 
-        $novedad = novedade::create($novedadData);
+        try {
+            $novedad = novedade::create($novedadData);
 
-        if ($horariosSeleccionados->isNotEmpty()) {
-            $novedad->horarios()->syncWithoutDetaching($horariosSeleccionados->toArray());
+            Log::info("Novedad creada", [
+                'novedad_id' => $novedad->NOV_ID,
+                'empleado_id' => $request->EMP_ID,
+                'horarios_seleccionados' => $horariosSeleccionados->count(),
+                'hora_inicio_manual' => $request->hora_inicio_manual,
+                'hora_fin_manual' => $request->hora_fin_manual
+            ]);
+
+            // Gestionar horarios seleccionados o crear malla bloqueada manualmente
+            if ($horariosSeleccionados->isNotEmpty()) {
+                // Vincular los horarios existentes a la novedad
+                $novedad->horarios()->syncWithoutDetaching($horariosSeleccionados->toArray());
+
+                // Desactivar las mallas seleccionadas para bloquear estos horarios
+                malla::whereIn('MAL_ID', $horariosSeleccionados)->update(['MAL_ESTADO' => 0]);
+
+                Log::info("Horarios existentes vinculados y desactivados", [
+                    'novedad_id' => $novedad->NOV_ID,
+                    'horarios' => $horariosSeleccionados->toArray()
+                ]);
+            } elseif ($request->filled('hora_inicio_manual') && $request->filled('hora_fin_manual')) {
+                // Crear malla bloqueada manualmente cuando no hay horarios asignados
+                Log::info("Creando malla bloqueada manualmente", [
+                    'novedad_id' => $novedad->NOV_ID
+                ]);
+                $this->crearMallaBloqueadaManual($novedad, $request);
+            } else {
+                Log::info("Novedad creada sin horarios asociados", [
+                    'novedad_id' => $novedad->NOV_ID
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error("Error creando novedad", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+
+            return back()->withErrors(['error' => 'Error interno del servidor: ' . $e->getMessage()])->withInput();
         }
 
         // Si es desactivación de horario, registrar la relación y desactivar la malla
@@ -210,7 +281,7 @@ class NovedadesController extends Controller
             'campana',
             'campana.unidadNegocioCliente.cliente'
         ])->where('EMP_ID', $empleadoId)
-            ->where('MAL_ESTADO', 1);
+            ->whereIn('MAL_ESTADO', [0, 1]); // Incluir tanto horarios activos como bloqueados
 
         if ($fechaInicio && $fechaFin) {
             if ($fechaInicio > $fechaFin) {
@@ -312,16 +383,27 @@ class NovedadesController extends Controller
             }
         }
 
+        // Si la novedad estaba rechazada y se está editando, cambiar estado a pendiente
+        $cambiarEstado = $novedad->NOV_ESTADO_APROBACION === 'rechazada';
+
         $novedad->update([
             'TIN_ID' => $request->TIN_ID,
             'EMP_ID' => $request->EMP_ID,
             'NOV_DESCRIPCION' => $request->NOV_DESCRIPCION,
             'NOV_FECHA' => $request->NOV_FECHA ?? $novedad->NOV_FECHA,
-            'NOV_ARCHIVOS' => json_encode($archivos)
+            'NOV_ARCHIVOS' => json_encode($archivos),
+            'NOV_ESTADO_APROBACION' => $cambiarEstado ? 'pendiente' : $novedad->NOV_ESTADO_APROBACION,
+            'NOV_OBSERVACIONES' => $cambiarEstado ? null : $novedad->NOV_OBSERVACIONES, // Limpiar observaciones si se reenvía
+            'NOV_APROBADO_POR' => $cambiarEstado ? null : $novedad->NOV_APROBADO_POR,
+            'NOV_FECHA_APROBACION' => $cambiarEstado ? null : $novedad->NOV_FECHA_APROBACION
         ]);
 
+        $mensaje = $cambiarEstado
+            ? 'Novedad actualizada y reenviada para aprobación exitosamente'
+            : 'Novedad actualizada exitosamente';
+
         return redirect()->route('Novedades.show', $novedad->NOV_ID)
-            ->with('success', 'Novedad actualizada exitosamente');
+            ->with('success', $mensaje);
     }
 
     /**
@@ -925,6 +1007,74 @@ class NovedadesController extends Controller
         $novedad->save();
 
         return response()->json(['success' => 'Archivo eliminado exitosamente']);
+    }
+
+    /**
+     * Crear una malla bloqueada manualmente cuando el empleado no tiene horarios asignados
+     */
+    private function crearMallaBloqueadaManual(novedade $novedad, Request $request)
+    {
+        try {
+        // Obtener la primera campaña del empleado (o una por defecto)
+        $empleado = empleado::with('campana')->find($request->EMP_ID);
+        $campaniaId = $empleado->CAM_ID ?? \App\Models\campana::where('CAM_ESTADO', 1)->first()->CAM_ID ?? null;
+
+        if (!$campaniaId) {
+            Log::error("No se encontró ninguna campaña activa para asignar a la malla bloqueada");
+            throw new \Exception("No hay campañas activas disponibles para crear el bloqueo de horario.");
+        }
+
+            Log::info("Creando malla bloqueada", [
+                'novedad_id' => $novedad->NOV_ID,
+                'empleado_id' => $request->EMP_ID,
+                'campania_id' => $campaniaId,
+                'fecha' => $request->NOV_FECHA,
+                'hora_inicio' => $request->hora_inicio_manual,
+                'hora_fin' => $request->hora_fin_manual
+            ]);
+
+            // Crear la malla bloqueada
+            $fechaDia = $request->NOV_FECHA;
+            $horaInicio = $request->hora_inicio_manual . ':00';
+            $horaFin = $request->hora_fin_manual . ':00';
+
+            $mallaData = [
+                'CAM_ID' => $campaniaId,
+                'MAL_DIA' => $fechaDia,
+                'MAL_INICIO' => $fechaDia . ' ' . $horaInicio,
+                'MAL_FINAL' => $fechaDia . ' ' . $horaFin,
+                'EMP_ID' => $request->EMP_ID,
+                'USER_ID' => Auth::id(),
+                'MAL_ESTADO' => 0 // 0 = bloqueado por novedad
+            ];
+
+            Log::info("Datos para crear malla bloqueada", $mallaData);
+
+            $mallaBloqueada = malla::create($mallaData);
+
+            Log::info("Malla bloqueada creada", [
+                'malla_id' => $mallaBloqueada->MAL_ID,
+                'novedad_id' => $novedad->NOV_ID
+            ]);
+
+            // Vincular la malla bloqueada a la novedad
+            $novedad->horarios()->syncWithoutDetaching([$mallaBloqueada->MAL_ID]);
+
+            Log::info("Malla bloqueada vinculada a novedad exitosamente", [
+                'novedad_id' => $novedad->NOV_ID,
+                'malla_id' => $mallaBloqueada->MAL_ID
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error creando malla bloqueada", [
+                'novedad_id' => $novedad->NOV_ID,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Re-lanzar la excepción para que sea manejada por el controlador
+            throw $e;
+        }
     }
 
     public function verArchivo($novedadId, $indiceArchivo)

@@ -28,22 +28,27 @@ class ContratosController extends Controller
 
     public function index($emp_id)
     {
-        //
+        $this->authorize('ver-empleado');
+        // Obtener empleado con relaciones
+        $empleado = empleado::with(['cargo', 'cliente', 'municipio', 'contratoActivo.cargo'])
+            ->where('EMP_ID', $emp_id)
+            ->firstOrFail();
 
-        $empleado = empleado::where('EMP_ID', $emp_id)->get();
+        // Obtener cargos y tipos de contratos activos
+        $cargos = cargo::where('CAR_ESTADO', '=', '1')
+            ->orderBy('CAR_NOMBRE', 'asc')
+            ->get();
 
-        $cargos = cargo::where('CAR_ESTADO', '=', '1')->get();
+        $tipos_contratos = tipos_contrato::where('TIC_ESTADO', '=', '1')
+            ->orderBy('TIC_NOMBRE', 'asc')
+            ->get();
 
-        $tipos_contratos = tipos_contrato::where('TIC_ESTADO', '=', '1')->get();
-
-        $sql = "SELECT emc.*, tic.TIC_NOMBRE, car.CAR_NOMBRE
-        FROM emp_contratos AS emc
-        INNER JOIN cargos AS car ON car.CAR_ID = emc.CAR_ID
-        INNER JOIN tipos_contratos AS tic ON tic.TIC_ID = emc.TIC_ID
-        WHERE emc.EMC_ESTADO = 1
-        AND emc.EMP_ID = ".$emp_id;
-
-        $contratos = DB::select($sql);
+        // Usar Eloquent en lugar de SQL raw para mejor seguridad y mantenibilidad
+        $contratos = emp_contrato::with(['cargo', 'tipoContrato'])
+            ->where('EMC_ESTADO', 1)
+            ->where('EMP_ID', $emp_id)
+            ->orderBy('EMC_FECHA_INI', 'desc')
+            ->get();
 
 
         return view('Malla.Contrato.index', compact('empleado', 'cargos', 'tipos_contratos', 'contratos'));
@@ -56,6 +61,7 @@ class ContratosController extends Controller
      */
     public function create(request $request)
     {
+        $this->authorize('crear-empleado');
         //
         $contrato = emp_contrato::where('EMP_ID', $request->EMP_ID)->where('EMC_FINALIZADO', 'NO')->get();
 
@@ -134,6 +140,7 @@ class ContratosController extends Controller
 
     public function finish(Request $request, $emc_id)
     {
+        $this->authorize('opciones-empleado');
         /* emp_contrato::where('EMC_ID', $emc_id)->update(['EMC_FINALIZADO' => 'SI']); */
 
         $contrato = emp_contrato::where('EMC_ID', $emc_id)->get();

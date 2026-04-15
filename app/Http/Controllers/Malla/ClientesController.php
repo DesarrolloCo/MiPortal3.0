@@ -24,6 +24,7 @@ class ClientesController extends Controller
 
     public function index()
     {
+        $this->authorize('ver-cli');
         //
         $clientes = cliente::where('CLI_ESTADO', '=','1')->get();
         return view('Malla.Cliente.index', compact('clientes'));
@@ -36,6 +37,7 @@ class ClientesController extends Controller
      */
     public function create(request $request)
     {
+        $this->authorize('crear-cli');
         //
 
         $datosCliente = request()->except('_token');
@@ -86,6 +88,7 @@ class ClientesController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->authorize('opciones-cli');
         //
         $datosCliente = request()->except(['_token','_method']);
         cliente::where('CLI_ID','=', $id)->update($datosCliente);
@@ -103,6 +106,7 @@ class ClientesController extends Controller
      */
     public function destroy($id)
     {
+        $this->authorize('opciones-cli');
         //
         /* cliente::where('CLI_ID', $id)->delete(); */
         cliente::where('CLI_ID', $id)->update(['CLI_ESTADO' => '0']);

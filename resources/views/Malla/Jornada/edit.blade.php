@@ -3,7 +3,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">Agregar joranda</h4>
+                <h4 class="modal-title">Editar jornada</h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -24,13 +24,49 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Hora inicial</label>
-                                <input type="text" class="form-control" name="JOR_INICIO" id="JOR_INICIO" value="{{$j_inicio[0]->HOR_INICIO}}" required disabled>
+                                <select name="JOR_INICIO" id="JOR_INICIO" class="form-control" required>
+                                    <option value="">Seleccionar hora</option>
+                                    @foreach ($horas as $hor)
+                                        <option value="{{ $hor->HOR_ID }}" {{ $list->JOR_INICIO == $hor->HOR_ID ? 'selected' : '' }}>{{ $hor->HOR_INICIO }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Hora final</label>
-                                <input type="text" class="form-control" id="JOR_FINAL" name="JOR_FINAL" value="{{$j_final[0]->HOR_FINAL}}" required disabled>
+                                <select name="JOR_FINAL" id="JOR_FINAL" class="form-control" required>
+                                    <option value="">Seleccionar hora</option>
+                                    @foreach ($horas as $hor)
+                                        <option value="{{ $hor->HOR_ID }}" {{ $list->JOR_FINAL == $hor->HOR_ID ? 'selected' : '' }}>{{ $hor->HOR_FINAL }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección de Almuerzo -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Hora inicio almuerzo <small class="text-muted">(opcional)</small></label>
+                                <select name="JOR_ALMUERZO_INICIO" id="JOR_ALMUERZO_INICIO" class="form-control">
+                                    <option value="">Sin almuerzo</option>
+                                    @foreach ($horas as $hor)
+                                        <option value="{{ $hor->HOR_ID }}" {{ $list->JOR_ALMUERZO_INICIO == $hor->HOR_ID ? 'selected' : '' }}>{{ $hor->HOR_INICIO }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Hora fin almuerzo <small class="text-muted">(opcional)</small></label>
+                                <select name="JOR_ALMUERZO_FIN" id="JOR_ALMUERZO_FIN" class="form-control">
+                                    <option value="">Sin almuerzo</option>
+                                    @foreach ($horas as $hor)
+                                        <option value="{{ $hor->HOR_ID }}" {{ $list->JOR_ALMUERZO_FIN == $hor->HOR_ID ? 'selected' : '' }}>{{ $hor->HOR_FINAL }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                     </div>

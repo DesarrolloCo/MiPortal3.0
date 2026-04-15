@@ -25,7 +25,16 @@ class AgentesController extends Controller
 
     public function index()
     {
-        //
+        $user = auth()->user();
+
+        // Verificar que el usuario tenga un empleado asociado (requerido para mostrar horario)
+        if (!$user->empleados) {
+            abort(403, 'Usuario no tiene empleado asociado.');
+        }
+
+        // Esta vista muestra "Mi horario" - debería ser accesible para cualquier usuario con empleado
+        // No requiere permisos especiales ya que es información personal
+
         return view('Malla.Agente.index');
     }
 

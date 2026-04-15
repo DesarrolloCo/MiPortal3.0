@@ -25,6 +25,7 @@ class UniclisController extends Controller
      */
     public function index()
     {
+        $this->authorize('ver-uni_cli');
         //
         $sql = "SELECT unicli.UNC_ID, unicli.UNI_ID, uni.UNI_NOMBRE, unicli.CLI_ID, ser.CLI_NOMBRE, unicli.UNC_ESTADO
         FROM uni_clis AS unicli
@@ -46,6 +47,7 @@ class UniclisController extends Controller
      */
     public function create(request $request)
     {
+        $this->authorize('crear-uni_cli');
         //
         $request->validate([
             'UNI_ID' => 'required',
@@ -100,6 +102,7 @@ class UniclisController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->authorize('opciones-uni_cli');
         //
         $datosuni_cli = request()->except(['_token','_method']);
         uni_cli::where('UNC_ID','=', $id)->update($datosuni_cli);
@@ -117,6 +120,7 @@ class UniclisController extends Controller
      */
     public function destroy($id)
     {
+        $this->authorize('opciones-uni_cli');
         //
         /* uni_cli::where('UNC_ID', $id)->delete(); */
         uni_cli::where('UNC_ID', $id)->update(['UNC_ESTADO' => '0']);

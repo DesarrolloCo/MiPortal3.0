@@ -37,11 +37,14 @@ class Equ_asignadoController extends Controller
     {
         //
 
-        $sql="SELECT e.EMP_NOMBRES, pc.EQU_ID,pc.EQU_NOMBRE, pc.EQU_SERIAL, EAS_ID, EAS_FECHA_ENTREGA, eq.EAS_ESTADO
+        $sql="SELECT e.EMP_NOMBRES, pc.EQU_ID, pc.EQU_NOMBRE, pc.EQU_SERIAL,
+               eq.EAS_ID, eq.EAS_FECHA_ENTREGA, eq.EAS_ESTADO,
+               d.DEV_ID
         FROM equ_asignados AS eq
         INNER JOIN empleados AS e ON e.EMP_ID = eq.EMP_ID
         INNER JOIN equipos AS pc ON pc.EQU_ID = eq.EQU_ID
-        WHERE eq.EAS_ESTADO = 1 OR EAS_ESTADO = 2";
+        LEFT JOIN devoluciones AS d ON d.EAS_ID = eq.EAS_ID AND d.DEV_ESTADO = 1
+        WHERE eq.EAS_ESTADO = 1 OR eq.EAS_ESTADO = 2";
 
         $sql2="SELECT EMP_ID, EMP_NOMBRES FROM `empleados` WHERE EMP_ESTADO = 1 AND EMP_ACTIVO = 'SI';";
 
@@ -99,7 +102,10 @@ class Equ_asignadoController extends Controller
                 $empleado->users->notify(new EquipoAsignadoNotification($asignacion->EAS_ID));
             }
 
-            return redirect()->back()->with('success', 'Asignación registrada exitosamente.');
+            // Redirigir con el ID de la asignación para poder descargar el acta
+            return redirect()->back()
+                ->with('success', 'Asignación registrada exitosamente.')
+                ->with('asignacion_id', $asignacion->EAS_ID);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error al registrar la asignación: ' . $e->getMessage());
         }
@@ -314,7 +320,7 @@ class Equ_asignadoController extends Controller
 
         // Obtener información adicional de la asignación
         $sql = "SELECT e.EMP_NOMBRES, e.EMP_CEDULA, e.EMP_EMAIL, e.EMP_TELEFONO,
-                eq.EQU_NOMBRE, eq.EQU_MARCA, eq.EQU_MODELO, eq.EQU_SERIAL, eq.EQU_DESCRIPCION,
+                eq.EQU_NOMBRE, eq.EQU_SERIAL, eq.EQU_OBSERVACIONES, eq.EQU_TIPO,
                 ea.EAS_FECHA_ENTREGA
                 FROM equ_asignados AS ea
                 INNER JOIN empleados AS e ON e.EMP_ID = ea.EMP_ID
@@ -340,10 +346,9 @@ class Equ_asignadoController extends Controller
             ],
             'equipo' => [
                 'nombre' => $datosAsignacion->EQU_NOMBRE,
-                'marca' => $datosAsignacion->EQU_MARCA,
-                'modelo' => $datosAsignacion->EQU_MODELO,
                 'serial' => $datosAsignacion->EQU_SERIAL,
-                'descripcion' => $datosAsignacion->EQU_DESCRIPCION,
+                'tipo' => $datosAsignacion->EQU_TIPO,
+                'observaciones' => $datosAsignacion->EQU_OBSERVACIONES,
             ],
             'fecha_entrega' => $datosAsignacion->EAS_FECHA_ENTREGA,
             'fecha_devolucion' => $devolucion->DEV_FECHA_DEVOLUCION,
@@ -357,5 +362,65 @@ class Equ_asignadoController extends Controller
 
         // Retornar PDF para descarga
         return $pdf->download('Acta_Devolucion_' . $devolucion->DEV_ID . '.pdf');
+    }
+
+    /**
+     * Generar PDF del acta de entrega
+     *
+     * @param  int  $id  ID de la asignación
+     * @return \Illuminate\Http\Response
+     */
+    public function generarActaEntrega($id)
+    {
+        // Cargar la asignación
+        $asignacion = equ_asignado::findOrFail($id);
+
+        // Obtener información de la asignación con joins
+        $sql = "SELECT e.EMP_NOMBRES, e.EMP_CEDULA, e.EMP_EMAIL, e.EMP_TELEFONO, c.CAR_NOMBRE as CARGO,
+                eq.EQU_NOMBRE, eq.EQU_SERIAL, eq.EQU_OBSERVACIONES, eq.EQU_TIPO,
+                a.ARE_NOMBRE,
+                ea.EAS_FECHA_ENTREGA
+                FROM equ_asignados AS ea
+                INNER JOIN empleados AS e ON e.EMP_ID = ea.EMP_ID
+                LEFT JOIN cargos AS c ON c.CAR_ID = e.CAR_ID
+                INNER JOIN equipos AS eq ON eq.EQU_ID = ea.EQU_ID
+                LEFT JOIN areas AS a ON a.ARE_ID = eq.ARE_ID
+                WHERE ea.EAS_ID = ?";
+
+        $datosAsignacion = DB::select($sql, [$id]);
+
+        if (empty($datosAsignacion)) {
+            return redirect()->back()->with('error', 'No se encontró información de la asignación.');
+        }
+
+        $datosAsignacion = $datosAsignacion[0];
+
+        // Preparar datos para la vista del PDF
+        $data = [
+            'asignacion' => $asignacion,
+            'empleado' => [
+                'nombre' => $datosAsignacion->EMP_NOMBRES,
+                'cedula' => $datosAsignacion->EMP_CEDULA,
+                'email' => $datosAsignacion->EMP_EMAIL,
+                'telefono' => $datosAsignacion->EMP_TELEFONO,
+                'cargo' => $datosAsignacion->CARGO ?? 'N/A',
+            ],
+            'equipo' => [
+                'nombre' => $datosAsignacion->EQU_NOMBRE,
+                'serial' => $datosAsignacion->EQU_SERIAL,
+                'tipo' => $datosAsignacion->EQU_TIPO,
+                'observaciones' => $datosAsignacion->EQU_OBSERVACIONES,
+                'area' => $datosAsignacion->ARE_NOMBRE ?? 'N/A',
+            ],
+            'fecha_entrega' => $datosAsignacion->EAS_FECHA_ENTREGA,
+            'entregado_por' => Auth::user()->name ?? 'Sistema',
+            'fecha_generacion' => now()->format('d/m/Y H:i:s'),
+        ];
+
+        // Generar PDF
+        $pdf = \PDF::loadView('Inventario.Asignacion_equipo.acta_entrega_pdf', $data);
+
+        // Retornar PDF para descarga
+        return $pdf->download('Acta_Entrega_' . $asignacion->EAS_ID . '.pdf');
     }
 }

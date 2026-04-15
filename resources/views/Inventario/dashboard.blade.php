@@ -51,7 +51,7 @@
                 <li>
                     <strong>{{ $mantenimiento->equipo->EQU_NOMBRE }}</strong> ({{ $mantenimiento->equipo->EQU_SERIAL ?? 'N/A' }})
                     - Tipo: {{ $mantenimiento->MAN_TIPO }}
-                    - Debía realizarse: {{ $mantenimiento->MAN_FECHA_AGENDADA->format('d/m/Y') }}
+                    - Debía realizarse: {{ optional($mantenimiento->MAN_FECHA_AGENDADA)->format('d/m/Y') ?? 'Sin fecha' }}
                     <span class="badge badge-danger">Vencido hace {{ abs($mantenimiento->diasRestantes()) }} días</span>
                 </li>
                 @endforeach
@@ -203,6 +203,177 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Tercera Fila: Indicadores de Hardware -->
+<div class="row">
+
+    <!-- Hardware Disponible -->
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex no-block">
+                    <div class="m-r-20 align-self-center">
+                        <i class="mdi mdi-harddisk display-5 text-success"></i>
+                    </div>
+                    <div>
+                        <h2 class="m-t-0">{{ $hardwareDisponible }}</h2>
+                        <div class="text-muted m-b-0">Hardware disponible</div>
+                    </div>
+                </div>
+            </div>
+            <div class="inv-divider"></div>
+            <div style="padding:10px 22px;font-size:12px;color:var(--inv-text-muted)">
+                De <strong>{{ $totalHardware }}</strong> unidades en total
+            </div>
+        </div>
+    </div>
+
+    <!-- Hardware Asignado -->
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex no-block">
+                    <div class="m-r-20 align-self-center">
+                        <i class="mdi mdi-account-settings display-5 text-info"></i>
+                    </div>
+                    <div>
+                        <h2 class="m-t-0">{{ $hardwareAsignado }}</h2>
+                        <div class="text-muted m-b-0">Hardware asignado</div>
+                    </div>
+                </div>
+            </div>
+            <div class="inv-divider"></div>
+            <div style="padding:10px 22px;font-size:12px;color:var(--inv-text-muted)">
+                @php 
+                    $pctHwAsig = $totalHardware > 0 
+                        ? round(($hardwareAsignado / $totalHardware) * 100) 
+                        : 0; 
+                @endphp
+
+                <div class="inv-bar-wrap">
+                    <div class="inv-bar-bg">
+                        <div class="inv-bar-fill" 
+                             style="width:{{ $pctHwAsig }}%; background:var(--inv-blue)">
+                        </div>
+                    </div>
+                    <span class="inv-bar-pct" style="color:var(--inv-blue)">
+                        {{ $pctHwAsig }}%
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hardware por Tipo -->
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Hardware por Tipo</h5>
+
+                <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Total</th>
+                                <th>Asignado</th>
+                                <th>Disponible</th>
+                                <th>% Asignado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($hardwareIndicadores as $indicador)
+                            <tr>
+                                <td>{{ $indicador['tipo'] }}</td>
+                                <td>{{ $indicador['total'] }}</td>
+                                <td>{{ $indicador['asignado'] }}</td>
+                                <td>{{ $indicador['disponible'] }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {{ $indicador['porcentaje_asignado'] > 80 ? 'badge-danger' 
+                                        : ($indicador['porcentaje_asignado'] > 50 ? 'badge-warning' 
+                                        : 'badge-success') }}">
+                                        {{ $indicador['porcentaje_asignado'] }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    No hay hardware registrado
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Hardware por Descripción -->
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Hardware por Descripción</h5>
+
+                <div style="max-height: 200px; overflow-y: auto;">
+                    @forelse($hardwarePorDesc as $data)
+                    <div class="mb-2 p-2 border rounded 
+                        {{ $data['disponible'] == 0 ? 'border-danger bg-light-danger' 
+                        : ($data['disponible'] <= 5 ? 'border-warning bg-light-warning' 
+                        : 'border-success bg-light-success') }}">
+
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="font-weight-bold">
+                                {{ $data['descripcion'] }}
+                            </small>
+                            <span class="badge badge-sm 
+                                {{ $data['disponible'] == 0 ? 'badge-danger' 
+                                : ($data['disponible'] <= 2 ? 'badge-warning' 
+                                : 'badge-success') }}">
+                                {{ $data['disponible'] }}
+                            </span>
+                        </div>
+
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <small class="text-muted">Total</small>
+                                <div class="font-weight-bold">{{ $data['total'] }}</div>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted">Ocupado</small>
+                                <div class="font-weight-bold text-info">{{ $data['asignado'] }}</div>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted">Disp.</small>
+                                <div class="font-weight-bold text-success">{{ $data['disponible'] }}</div>
+                            </div>
+                        </div>
+
+                    </div>
+                    @empty
+                    <div class="text-center text-muted py-3">
+                        <i class="mdi mdi-information-outline"></i>
+                        <p>No hay datos</p>
+                    </div>
+                    @endforelse
+                </div>
+
+                @if($hardwarePorDesc->count() > 0)
+                <div class="mt-2 text-center">
+                    <small class="text-muted">
+                        Top {{ $hardwarePorDesc->count() }} descripciones
+                    </small>
+                </div>
+                @endif
+
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- Gráficos y Tablas -->

@@ -1,7 +1,7 @@
 <div class="card">
     <div class="card-body">
-        <h4 class="card-title"><i class="mdi mdi-cake text-warning"></i> Cumpleaños del Mes</h4>
-        <h6 class="card-subtitle">Celebremos juntos - {{ \Carbon\Carbon::now()->locale('es')->isoFormat('MMMM YYYY') }}</h6>
+        <h4 class="card-title"><i class="mdi mdi-cake text-warning"></i> Cumpleaños Próximos</h4>
+        <h6 class="card-subtitle">Celebremos juntos - {{ \Carbon\Carbon::now()->locale('es')->isoFormat('MMMM') }} y {{ \Carbon\Carbon::now()->addMonth()->locale('es')->isoFormat('MMMM') }} del {{ \Carbon\Carbon::now()->year }}</h6>
 
         @if($cumpleanos->count() > 0)
             <div class="m-t-20" style="max-height: 400px; overflow-y: auto;">
@@ -55,7 +55,7 @@
                     <div class="text-center pt-3">
                         <small class="text-muted">
                             <i class="mdi mdi-information"></i>
-                            + {{ $cumpleanos->count() - 10 }} cumpleaños más este mes
+                            + {{ $cumpleanos->count() - 10 }} cumpleaños más próximos
                         </small>
                     </div>
                 @endif
@@ -64,7 +64,7 @@
             <!-- Resumen total -->
             <div class="text-center mt-3 pt-3 border-top">
                 <small class="text-muted">
-                    <strong>{{ $cumpleanos->count() }}</strong> cumpleaños en total este mes
+                    <strong>{{ $cumpleanos->count() }}</strong> cumpleaños en total próximos
                 </small>
             </div>
         @else

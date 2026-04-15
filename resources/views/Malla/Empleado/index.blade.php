@@ -26,6 +26,122 @@
                 <!-- ============================================================== -->
                 <!-- End Bread crumb and right sidebar toggle -->
                 <!-- ============================================================== -->
+
+                <!-- Alertas de mensajes -->
+                @if(session('rgcmessage'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <strong><i class="mdi mdi-check-circle"></i> Éxito!</strong> {{ session('rgcmessage') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(session('msjupdate'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <strong><i class="mdi mdi-information"></i> Actualizado!</strong> {{ session('msjupdate') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(session('msjdelete'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <strong><i class="mdi mdi-alert"></i> Atención!</strong> {{ session('msjdelete') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(session('msjerror'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <strong><i class="mdi mdi-close-circle"></i> Error!</strong> {{ session('msjerror') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(session('error'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <strong><i class="mdi mdi-close-circle"></i> Error!</strong> {{ session('error') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if ($errors->any())
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <strong><i class="mdi mdi-alert-circle"></i> Errores de validación:</strong>
+                            <ul class="mb-0 mt-2">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Errores de importación detallados -->
+                @if(session('import_errors'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">
+                                    <i class="mdi mdi-alert-circle"></i> Errores de Importación ({{ count(session('import_errors')) }})
+                                </h5>
+                                <button type="button" class="btn btn-sm btn-warning" id="toggle-errors">
+                                    <i class="mdi mdi-chevron-down"></i> Ver detalles
+                                </button>
+                            </div>
+                            <div id="error-details" style="display: none;">
+                                <hr>
+                                <div style="max-height: 300px; overflow-y: auto;">
+                                    <ul class="mb-0">
+                                        @foreach(session('import_errors') as $error)
+                                            <li class="mb-1">{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <!-- ============================================================== -->
                 <!-- Start Page Content -->
                 <!-- ============================================================== -->
@@ -39,10 +155,10 @@
                                     <table class="table no-wrap display responsive nowrap" id="table_equipos">
                                         <thead>
                                             <tr>
-                                                <th>Código de empleado</th>
+                                                <th>Codigo de empleado</th>
                                                 <th>Documento</th>
                                                 <th>Nombre completo</th>
-                                                <th>Campaña</th>
+                                                <th>Cliente</th>
                                                 <th>Estado</th>
                                                 <th>Opciones</th>
                                             </tr>
@@ -53,13 +169,13 @@
                                                     <td>{{ $list->EMP_CODE }}</td>
                                                     <td>{{ $list->EMP_CEDULA }}</td>
                                                     <td>{{ $list->EMP_NOMBRES }}</td>
-                                                    <td>{{ $list->CAM_NOMBRE }}</td>
+                                                    <td>{{ $list->cliente ? $list->cliente->CLI_NOMBRE : 'N/A' }}</td>
                                                     <td>
                                                         <div class="custom-control custom-switch">
                                                             <input type="checkbox" class="custom-control-input"
                                                                    id="marcador_{{$list->EMP_ID}}"
-                                                                   onchange="estado_emp('{{ $list->EMP_ACTIVO == 'SI' ? 'NO' : 'SI' }}', {{ $list->EMP_ID }})"
-                                                                   {{ $list->EMP_ACTIVO == 'SI' ? 'checked' : '' }}>
+                                                                   onchange="estado_emp({{ ($list->EMP_ACTIVO == 1 || $list->EMP_ACTIVO == 'SI') ? 0 : 1 }}, {{ $list->EMP_ID }})"
+                                                                   {{ ($list->EMP_ACTIVO == 1 || $list->EMP_ACTIVO == 'SI') ? 'checked' : '' }}>
                                                             <label class="custom-control-label" for="marcador_{{$list->EMP_ID}}"></label>
                                                         </div>
                                                     </td>
@@ -121,13 +237,111 @@
                             },
                             success: function (response) {
                                 console.log('Estado actualizado:', response);
+                                // Mostrar mensaje de éxito sin recargar página
+                                toastr.success('Estado actualizado correctamente', 'Éxito');
                             },
                             error: function (xhr) {
-                                alert('Error al actualizar estado');
-                                console.error(xhr.responseText);
+                                console.error('Error al actualizar estado:', xhr.responseText);
+                                var errorMsg = xhr.responseJSON && xhr.responseJSON.error
+                                    ? xhr.responseJSON.error
+                                    : 'Error al actualizar estado';
+                                toastr.error(errorMsg, 'Error');
                             }
                         });
                     }
+
+                    // Inicialización optimizada de DataTables
+                    $(document).ready(function() {
+                        // Verificar si DataTables ya está inicializado
+                        if ($.fn.DataTable.isDataTable('#table_equipos')) {
+                            // Destruir instancia existente
+                            $('#table_equipos').DataTable().destroy();
+                        }
+
+                        // Inicializar DataTables con configuración optimizada
+                        $('#table_equipos').DataTable({
+                            // Opciones de rendimiento
+                            "deferRender": true,        // Renderizado diferido para tablas grandes
+                            "processing": true,          // Mostrar indicador de procesamiento
+                            "stateSave": true,          // Guardar estado (página actual, búsqueda, etc.)
+                            "stateDuration": 3600,      // Duración del estado guardado (1 hora)
+
+                            // Paginación optimizada
+                            "pageLength": 25,           // Mostrar 25 registros por defecto
+                            "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
+
+                            // Idioma español
+                            "language": {
+                                "decimal": "",
+                                "emptyTable": "No hay datos disponibles en la tabla",
+                                "info": "Mostrando _START_ a _END_ de _TOTAL_ empleados",
+                                "infoEmpty": "Mostrando 0 a 0 de 0 empleados",
+                                "infoFiltered": "(filtrado de _MAX_ empleados totales)",
+                                "infoPostFix": "",
+                                "thousands": ",",
+                                "lengthMenu": "Mostrar _MENU_ empleados",
+                                "loadingRecords": "Cargando...",
+                                "processing": "Procesando...",
+                                "search": "Buscar:",
+                                "zeroRecords": "No se encontraron registros coincidentes",
+                                "paginate": {
+                                    "first": "Primero",
+                                    "last": "Último",
+                                    "next": "Siguiente",
+                                    "previous": "Anterior"
+                                },
+                                "aria": {
+                                    "sortAscending": ": activar para ordenar la columna ascendente",
+                                    "sortDescending": ": activar para ordenar la columna descendente"
+                                }
+                            },
+
+                            // Configuración de columnas
+                            "columnDefs": [
+                                { "orderable": false, "targets": [4, 5] },  // Deshabilitar orden en Estado y Opciones
+                                { "searchable": false, "targets": [4, 5] }  // Deshabilitar búsqueda en Estado y Opciones
+                            ],
+
+                            // Ordenamiento por defecto (por Nombre)
+                            "order": [[2, "asc"]],
+
+                            // Optimización de búsqueda
+                            "search": {
+                                "smart": true,          // Búsqueda inteligente
+                                "regex": false,         // Desactivar regex para mejor rendimiento
+                                "caseInsensitive": true // Búsqueda sin distinguir mayúsculas
+                            },
+
+                            // Responsive
+                            "responsive": true,
+                            "autoWidth": false
+                        });
+                    });
+                </script>
+
+                <!-- Script para toggle de errores de importación -->
+                <script>
+                    $(document).ready(function() {
+                        $('#toggle-errors').click(function() {
+                            var errorDetails = $('#error-details');
+                            var icon = $(this).find('i');
+
+                            if (errorDetails.is(':visible')) {
+                                errorDetails.slideUp();
+                                icon.removeClass('mdi-chevron-up').addClass('mdi-chevron-down');
+                                $(this).html('<i class="mdi mdi-chevron-down"></i> Ver detalles');
+                            } else {
+                                errorDetails.slideDown();
+                                icon.removeClass('mdi-chevron-down').addClass('mdi-chevron-up');
+                                $(this).html('<i class="mdi mdi-chevron-up"></i> Ocultar detalles');
+                            }
+                        });
+
+                        // Auto-cerrar alertas después de 15 segundos (excepto errores de importación)
+                        setTimeout(function() {
+                            $('.alert:not(:has(#error-details))').fadeOut('slow');
+                        }, 15000);
+                    });
                 </script>
 
 

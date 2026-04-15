@@ -79,22 +79,6 @@
                             </ul>
                         </li>
                         @endcan
-                        @can('sidebar_recursos_humanos')
-                        <li>
-                            <a class="has-arrow" href="#" aria-expanded="false"><i class="mdi mdi-account-convert"></i><span class="hide-menu">Recursos humanos {{-- <span class="label label-rounded label-success">5</span> --}}</span></a>
-                            <ul aria-expanded="false" class="collapse">
-                                @can('ver-cargo')
-                                <li><a href="{{ route('Cargo.index') }}">Gestiones por cargos</a></li>
-                                @endcan
-                                @can('ver-empleado')
-                                <li><a href="{{ route('Empleado.index') }}">Gestionar empleados</a></li>
-                                @endcan
-                                @can('ver-novedades')
-                                <li><a href="{{ route('Novedades.index') }}">Gestionar novedades</a></li>
-                                @endcan
-                            </ul>
-                        </li>
-                        @endcan
                         @can('sidebar_contabilidad')
                         <li>
                             <a class="has-arrow" href="#" aria-expanded="false"><i class="mdi mdi-calculator"></i><span class="hide-menu">Contabilidad {{-- <span class="label label-rounded label-success">5</span> --}}</span></a>
@@ -108,8 +92,24 @@
                                 @can('ver-uni_cli')
                                 <li><a href="{{ route('Uni_cli.index') }}">Relacionar Uni - Cli</a></li>
                                 @endcan
+                            </ul>
+                        </li>
+                        @endcan
+                        @can('sidebar_recursos_humanos')
+                        <li>
+                            <a class="has-arrow" href="#" aria-expanded="false"><i class="mdi mdi-account-convert"></i><span class="hide-menu">Recursos humanos {{-- <span class="label label-rounded label-success">5</span> --}}</span></a>
+                            <ul aria-expanded="false" class="collapse">
+                                @can('ver-cargo')
+                                <li><a href="{{ route('Cargo.index') }}">Gestiones por cargos</a></li>
+                                @endcan
+                                @can('ver-empleado')
+                                <li><a href="{{ route('Empleado.index') }}">Gestionar empleados</a></li>
+                                @endcan
                                 @can('ver-tipos_novedades')
                                 <li><a href="{{ route('TiposNovedades.index') }}">Gestionar tipos de novedades</a></li>
+                                @endcan
+                                @can('ver-novedades')
+                                <li><a href="{{ route('Novedades.index') }}">Gestionar novedades</a></li>
                                 @endcan
                             </ul>
                         </li>

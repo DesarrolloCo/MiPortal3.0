@@ -35,7 +35,7 @@
 
                                 <!-- column -->
                                 <div class="table-responsive">
-                                    <table class="table no-wrap display responsive nowrap" id="table_equipos">
+                                    <table class="table no-wrap display responsive nowrap" id="table_cliente">
                                         <thead>
                                             <tr>
                                                 <th>Nombre</th>

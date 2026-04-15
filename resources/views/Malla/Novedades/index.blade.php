@@ -288,23 +288,28 @@
                                                 <i class="mdi mdi-eye"></i>
                                             </a>
 
-                                            @if ($novedad->NOV_ESTADO_APROBACION === 'pendiente')
-                                                <a href="{{ route('Novedades.edit', $novedad->NOV_ID) }}"
-                                                    class="btn btn-warning btn-sm" rel="tooltip" title="Editar">
-                                                    <i class="mdi mdi-pencil"></i>
-                                                </a>
+                                             @if ($novedad->NOV_ESTADO_APROBACION === 'pendiente')
+                                                 <a href="{{ route('Novedades.edit', $novedad->NOV_ID) }}"
+                                                     class="btn btn-warning btn-sm" rel="tooltip" title="Editar">
+                                                     <i class="mdi mdi-pencil"></i>
+                                                 </a>
 
-                                                <form method="POST"
-                                                    action="{{ route('Novedades.destroy', $novedad->NOV_ID) }}"
-                                                    style="display: inline-block;">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-danger btn-sm" rel="tooltip"
-                                                        title="Eliminar" onclick="return confirm('¿Está seguro?')">
-                                                        <i class="mdi mdi-delete"></i>
-                                                    </button>
-                                                </form>
-                                            @endif
+                                                 <form method="POST"
+                                                     action="{{ route('Novedades.destroy', $novedad->NOV_ID) }}"
+                                                     style="display: inline-block;">
+                                                     @csrf
+                                                     @method('DELETE')
+                                                     <button type="submit" class="btn btn-danger btn-sm" rel="tooltip"
+                                                         title="Eliminar" onclick="return confirm('¿Está seguro?')">
+                                                         <i class="mdi mdi-delete"></i>
+                                                     </button>
+                                                 </form>
+                                             @elseif ($novedad->NOV_ESTADO_APROBACION === 'rechazada')
+                                                 <a href="{{ route('Novedades.edit', $novedad->NOV_ID) }}"
+                                                     class="btn btn-warning btn-sm" rel="tooltip" title="Editar y reenviar">
+                                                     <i class="mdi mdi-pencil"></i>
+                                                 </a>
+                                             @endif
                                         </td>
                                     </tr>
                                 @endforeach

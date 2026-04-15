@@ -26,6 +26,7 @@ class CampanasController extends Controller
 
     public function index()
     {
+        $this->authorize('ver-camp');
         //
         $sql = "SELECT cli.CLI_ID, cli.CLI_NOMBRE, uni.UNI_ID, uni.UNI_NOMBRE, unc.UNC_ID, cam.*
         FROM campanas AS cam
@@ -59,6 +60,7 @@ class CampanasController extends Controller
      */
     public function create(request $request)
     {
+        $this->authorize('crear-camp');
         //
         $request->validate([
             'CAM_NOMBRE' => 'required',
@@ -113,6 +115,7 @@ class CampanasController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->authorize('opciones-camp');
         //
         $datoscampana = request()->except(['_token','_method']);
         campana::where('CAM_ID','=', $id)->update($datoscampana);
@@ -130,6 +133,7 @@ class CampanasController extends Controller
      */
     public function destroy($id)
     {
+        $this->authorize('opciones-camp');
         //
         /* campana::where('CAM_ID', $id)->delete(); */
         campana::where('CAM_ID', $id)->update(['CAM_ESTADO' => '0']);

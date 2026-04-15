@@ -25,10 +25,10 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        // Widget 1: Cumpleaños del mes
+        // Widget 1: Cumpleaños del mes actual y siguiente (próximos)
         $cumpleanos = $this->getCumpleanosDelMes();
 
-        // Widget 2: Aniversarios laborales del mes
+        // Widget 2: Aniversarios laborales del mes actual y siguiente (próximos)
         $aniversarios = $this->getAniversariosDelMes();
 
         // Widget 3: Nuevos empleados (últimos 30 días)
@@ -69,6 +69,9 @@ class DashboardController extends Controller
         // Galería reciente
         $galeriaReciente = $this->getGaleriaReciente();
 
+        // Verificar si el usuario está cumpliendo años hoy
+        $esCumpleanos = $this->verificarCumpleanosUsuario();
+
         return view('extranet.dashboard', compact(
             'cumpleanos',
             'aniversarios',
@@ -81,97 +84,169 @@ class DashboardController extends Controller
             'encuestasPendientes',
             'reconocimientosRecientes',
             'documentosDestacados',
-            'galeriaReciente'
+            'galeriaReciente',
+            'esCumpleanos'
         ));
     }
 
     /**
-     * Widget 1: Obtener cumpleaños del mes actual
+     * Widget 1: Obtener cumpleaños del mes actual y siguiente (solo próximos)
      */
     private function getCumpleanosDelMes()
     {
-        $mesActual = Carbon::now()->month;
+        $hoy = Carbon::now();
+        $mesActual = $hoy->month;
+        $mesSiguiente = $hoy->copy()->addMonth()->month;
+        $anoActual = $hoy->year;
 
-        return empleado::where('EMP_ACTIVO', 1)
+        // Obtener empleados con cumpleaños en mes actual o siguiente
+        $empleados = empleado::where('EMP_ACTIVO', 1)
             ->whereNotNull('EMP_FECHA_NACIMIENTO')
-            ->whereRaw('MONTH(EMP_FECHA_NACIMIENTO) = ?', [$mesActual])
-            ->with(['cargo', 'campana']) // Cargar relaciones para optimizar consultas
-            ->orderByRaw('DAY(EMP_FECHA_NACIMIENTO) ASC')
-            ->get()
-            ->map(function ($empleado) {
-                $fechaNacimiento = Carbon::parse($empleado->EMP_FECHA_NACIMIENTO);
-                $edad = $fechaNacimiento->age;
-                $diasRestantes = $this->getDiasHastaCumpleanos($fechaNacimiento);
+            ->where(function ($query) use ($mesActual, $mesSiguiente) {
+                $query->whereRaw('MONTH(EMP_FECHA_NACIMIENTO) = ?', [$mesActual])
+                      ->orWhereRaw('MONTH(EMP_FECHA_NACIMIENTO) = ?', [$mesSiguiente]);
+            })
+            ->with(['contratos' => function($query) {
+                // Cargar solo el contrato activo con su cargo
+                $query->where('EMC_FINALIZADO', 'NO')->with('cargo');
+            }, 'campana', 'cliente'])
+            ->get();
 
-                return [
-                    'empleado' => $empleado,
-                    'fecha' => $fechaNacimiento->locale('es')->isoFormat('DD [de] MMMM'),
-                    'edad' => $edad,
-                    'dias_restantes' => $diasRestantes,
-                    'es_hoy' => $diasRestantes === 0,
-                    'es_esta_semana' => $diasRestantes <= 7 && $diasRestantes >= 0,
-                ];
-            })
-            ->sortBy(function ($item) {
-                // Ordenar por días restantes: primero los de hoy, luego los más cercanos
-                if ($item['es_hoy']) {
-                    return 0;
-                }
-                return $item['dias_restantes'];
-            })
-            ->values(); // Resetear las claves del array
+        return $empleados->filter(function ($empleado) {
+            $fechaNacimiento = Carbon::parse($empleado->EMP_FECHA_NACIMIENTO);
+            $hoy = Carbon::now();
+
+            // Calcular fecha del cumpleaños este año
+            $cumpleanosEsteAno = Carbon::createFromDate($hoy->year, $fechaNacimiento->month, $fechaNacimiento->day);
+
+            // Solo incluir si el cumpleaños aún no ha pasado este año
+            return $cumpleanosEsteAno->gte($hoy->startOfDay());
+        })
+        ->map(function ($empleado) {
+            $fechaNacimiento = Carbon::parse($empleado->EMP_FECHA_NACIMIENTO);
+            $edad = $fechaNacimiento->age;
+            $diasRestantes = $this->getDiasHastaCumpleanos($fechaNacimiento);
+
+            // Usar el cargo del contrato activo si existe
+            if ($empleado->contratos->isNotEmpty()) {
+                $contratoActivo = $empleado->contratos->first();
+                $empleado->setRelation('cargo', $contratoActivo->cargo);
+            }
+
+            return [
+                'empleado' => $empleado,
+                'fecha' => $fechaNacimiento->locale('es')->isoFormat('DD [de] MMMM'),
+                'edad' => $edad,
+                'dias_restantes' => $diasRestantes,
+                'es_hoy' => $diasRestantes === 0,
+                'es_esta_semana' => $diasRestantes <= 7 && $diasRestantes >= 0,
+            ];
+        })
+        ->sortBy(function ($item) {
+            // Ordenar por días restantes: primero los de hoy, luego los más cercanos
+            if ($item['es_hoy']) {
+                return 0;
+            }
+            return $item['dias_restantes'];
+        })
+        ->values(); // Resetear las claves del array
     }
 
     /**
-     * Widget 2: Obtener aniversarios laborales del mes
+     * Widget 2: Obtener aniversarios laborales del mes actual y siguiente (próximos)
      */
     private function getAniversariosDelMes()
     {
-        $mesActual = Carbon::now()->month;
+        $hoy = Carbon::now();
+        $mesActual = $hoy->month;
+        $mesSiguiente = $hoy->copy()->addMonth()->month;
 
-        return emp_contrato::with('empleado')
+        $contratos = emp_contrato::with(['empleado', 'cargo']) // Cargar cargo desde el contrato
             ->whereHas('empleado', function ($query) {
                 $query->where('EMP_ACTIVO', 1);
             })
             ->whereNotNull('EMC_FECHA_INI')
-            ->whereRaw('MONTH(EMC_FECHA_INI) = ?', [$mesActual])
-            ->orderByRaw('DAY(EMC_FECHA_INI) ASC')
-            ->get()
-            ->map(function ($contrato) {
-                $fechaInicio = Carbon::parse($contrato->EMC_FECHA_INI);
-                $anosServicio = $fechaInicio->diffInYears(Carbon::now());
-                $diasRestantes = $this->getDiasHastaAniversario($fechaInicio);
-
-                return [
-                    'empleado' => $contrato->empleado,
-                    'fecha' => $fechaInicio->format('d/m'),
-                    'anos' => $anosServicio,
-                    'dias_restantes' => $diasRestantes,
-                    'es_hoy' => $diasRestantes === 0,
-                    'es_esta_semana' => $diasRestantes <= 7 && $diasRestantes >= 0,
-                ];
+            ->where(function ($query) use ($mesActual, $mesSiguiente) {
+                $query->whereRaw('MONTH(EMC_FECHA_INI) = ?', [$mesActual])
+                      ->orWhereRaw('MONTH(EMC_FECHA_INI) = ?', [$mesSiguiente]);
             })
-            ->filter(function ($item) {
-                return $item['anos'] > 0; // Solo mostrar si ya cumplió al menos 1 año
-            });
+            ->where('EMC_FINALIZADO', 'NO') // Solo contratos activos
+            ->get();
+
+        return $contratos->filter(function ($contrato) {
+            $fechaInicio = Carbon::parse($contrato->EMC_FECHA_INI);
+            $hoy = Carbon::now();
+
+            // Calcular fecha del aniversario este año
+            $aniversarioEsteAno = Carbon::createFromDate($hoy->year, $fechaInicio->month, $fechaInicio->day);
+
+            // Solo incluir si el aniversario aún no ha pasado este año
+            return $aniversarioEsteAno->gte($hoy->startOfDay());
+        })
+        ->map(function ($contrato) {
+            $fechaInicio = Carbon::parse($contrato->EMC_FECHA_INI);
+            $anosServicio = $fechaInicio->diffInYears(Carbon::now());
+            $diasRestantes = $this->getDiasHastaAniversario($fechaInicio);
+
+            // Asignar el cargo del contrato al empleado para que la vista lo use
+            $empleado = $contrato->empleado;
+            $empleado->setRelation('cargo', $contrato->cargo);
+
+            return [
+                'empleado' => $empleado,
+                'fecha' => $fechaInicio->format('d/m'),
+                'anos' => $anosServicio,
+                'dias_restantes' => $diasRestantes,
+                'es_hoy' => $diasRestantes === 0,
+                'es_esta_semana' => $diasRestantes <= 7 && $diasRestantes >= 0,
+            ];
+        })
+        ->filter(function ($item) {
+            return $item['anos'] > 0; // Solo mostrar si ya cumplió al menos 1 año
+        })
+        ->sortBy(function ($item) {
+            // Ordenar por días restantes: primero los de hoy, luego los más cercanos
+            if ($item['es_hoy']) {
+                return 0;
+            }
+            return $item['dias_restantes'];
+        })
+        ->values();
     }
 
     /**
      * Widget 3: Obtener nuevos empleados (últimos 30 días)
+     * Basado en EMP_FECHA_INGRESO (fecha real de ingreso a la empresa)
      */
     private function getNuevosEmpleados()
     {
         $hace30Dias = Carbon::now()->subDays(30);
 
         return empleado::where('EMP_ACTIVO', 1)
-            ->where('created_at', '>=', $hace30Dias)
-            ->orderBy('created_at', 'desc')
+            ->whereNotNull('EMP_FECHA_INGRESO')
+            ->where('EMP_FECHA_INGRESO', '>=', $hace30Dias)
+            ->with(['contratos' => function($query) {
+                // Cargar solo el contrato activo con su cargo
+                $query->where('EMC_FINALIZADO', 'NO')->with('cargo');
+            }, 'cliente'])
+            ->orderBy('EMP_FECHA_INGRESO', 'desc')
             ->get()
             ->map(function ($empleado) {
+                $fechaIngreso = Carbon::parse($empleado->EMP_FECHA_INGRESO);
+                $dias = $fechaIngreso->diffInDays(Carbon::now());
+
+                // Usar el cargo del contrato activo si existe
+                if ($empleado->contratos->isNotEmpty()) {
+                    $contratoActivo = $empleado->contratos->first();
+                    $empleado->setRelation('cargo', $contratoActivo->cargo);
+                }
+
                 return [
                     'empleado' => $empleado,
-                    'dias' => Carbon::parse($empleado->created_at)->diffInDays(Carbon::now()),
-                    'fecha_ingreso' => Carbon::parse($empleado->created_at)->format('d/m/Y'),
+                    'dias' => $dias,
+                    'fecha_ingreso' => $fechaIngreso->format('d/m/Y'),
+                    'es_hoy' => $dias === 0,
+                    'es_esta_semana' => $dias <= 7,
                 ];
             });
     }
@@ -384,5 +459,33 @@ class DashboardController extends Controller
             ->withCount('fotos')
             ->orderBy('created_at', 'DESC')
             ->first();
+    }
+
+    /**
+     * Verificar si el usuario autenticado está cumpliendo años hoy
+     */
+    private function verificarCumpleanosUsuario()
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->id) {
+            return false;
+        }
+
+        // Buscar el empleado asociado al usuario
+        $empleado = empleado::where('USER_ID', $user->id)
+            ->whereNotNull('EMP_FECHA_NACIMIENTO')
+            ->first();
+
+        if (!$empleado) {
+            return false;
+        }
+
+        // Verificar si hoy es su cumpleaños
+        $fechaNacimiento = Carbon::parse($empleado->EMP_FECHA_NACIMIENTO);
+        $hoy = Carbon::now();
+
+        return $fechaNacimiento->month === $hoy->month &&
+               $fechaNacimiento->day === $hoy->day;
     }
 }

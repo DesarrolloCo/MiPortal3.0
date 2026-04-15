@@ -1,7 +1,7 @@
 <div class="card">
     <div class="card-body">
-        <h4 class="card-title"><i class="mdi mdi-party-popper text-info"></i> Aniversarios Laborales</h4>
-        <h6 class="card-subtitle">Celebremos su trayectoria - {{ \Carbon\Carbon::now()->locale('es')->isoFormat('MMMM YYYY') }}</h6>
+        <h4 class="card-title"><i class="mdi mdi-party-popper text-info"></i> Aniversarios Próximos</h4>
+        <h6 class="card-subtitle">Celebremos su trayectoria - {{ \Carbon\Carbon::now()->locale('es')->isoFormat('MMMM') }} y {{ \Carbon\Carbon::now()->addMonth()->locale('es')->isoFormat('MMMM') }} del {{ \Carbon\Carbon::now()->year }}</h6>
 
         @if($aniversarios->count() > 0)
             <div class="m-t-20" style="max-height: 400px; overflow-y: auto;">
@@ -57,7 +57,7 @@
                     <div class="text-center pt-3">
                         <small class="text-muted">
                             <i class="mdi mdi-information"></i>
-                            + {{ $aniversarios->count() - 10 }} aniversarios más este mes
+                            + {{ $aniversarios->count() - 10 }} aniversarios más próximos
                         </small>
                     </div>
                 @endif

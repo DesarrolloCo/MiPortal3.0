@@ -421,6 +421,88 @@ class EquiposController extends Controller
 
         $totalMantenimientosProximos = \App\Models\mantenimiento::proximos(7)->count();
 
+        // Estadísticas de Hardware
+        $totalHardware = \App\Models\hardwares::where('HAR_ESTADO', 1)->count();
+        $hardwareAsignado = \App\Models\har_asignado::where('HAS_ESTADO', 1)->count();
+        $hardwareDisponible = $totalHardware - $hardwareAsignado;
+
+        // Hardware por tipo y descripción
+        $hardwarePorTipoYDesc = DB::table('hardwares')
+            ->select('HAR_TIPO', 'HAR_DESCRIPCION', DB::raw('COUNT(*) as total'))
+            ->where('HAR_ESTADO', 1)
+            ->groupBy('HAR_TIPO', 'HAR_DESCRIPCION')
+            ->orderBy('HAR_TIPO')
+            ->orderByDesc('total')
+            ->get();
+
+        // Hardware asignado por tipo y descripción
+        $hardwareAsignadoPorTipoYDesc = DB::table('har_asignados')
+            ->join('hardwares', 'har_asignados.HAR_ID', '=', 'hardwares.HAR_ID')
+            ->select('hardwares.HAR_TIPO', 'hardwares.HAR_DESCRIPCION', DB::raw('COUNT(*) as asignado'))
+            ->where('har_asignados.HAS_ESTADO', 1)
+            ->groupBy('hardwares.HAR_TIPO', 'HAR_DESCRIPCION')
+            ->get()
+            ->keyBy(function ($item) {
+                return $item->HAR_TIPO . '|' . $item->HAR_DESCRIPCION;
+            });
+
+        // Agrupar por tipo para estructura jerárquica
+        $hardwareIndicadores = collect();
+        $hardwarePorTipoYDesc->groupBy('HAR_TIPO')->each(function ($items, $tipo) use ($hardwareIndicadores, $hardwareAsignadoPorTipoYDesc) {
+            $totalTipo = $items->sum('total');
+            $asignadoTipo = 0;
+
+            $subcategorias = $items->map(function ($item) use (&$asignadoTipo, $hardwareAsignadoPorTipoYDesc) {
+                $key = $item->HAR_TIPO . '|' . $item->HAR_DESCRIPCION;
+                $asignado = $hardwareAsignadoPorTipoYDesc->get($key)->asignado ?? 0;
+                $asignadoTipo += $asignado;
+                $disponible = $item->total - $asignado;
+
+                return [
+                    'descripcion' => $item->HAR_DESCRIPCION,
+                    'total' => $item->total,
+                    'asignado' => $asignado,
+                    'disponible' => $disponible,
+                ];
+            });
+
+            $disponibleTipo = $totalTipo - $asignadoTipo;
+            $porcentajeAsignadoTipo = $totalTipo > 0 ? round(($asignadoTipo / $totalTipo) * 100, 1) : 0;
+
+            $hardwareIndicadores->push([
+                'tipo' => $tipo,
+                'total' => $totalTipo,
+                'asignado' => $asignadoTipo,
+                'disponible' => $disponibleTipo,
+                'porcentaje_asignado' => $porcentajeAsignadoTipo,
+                'subcategorias' => $subcategorias,
+            ]);
+        });
+
+        // Hardware por descripción (para el nuevo card)
+        $hardwarePorDesc = DB::table('hardwares')
+            ->leftJoin('har_asignados', function($join) {
+                $join->on('hardwares.HAR_ID', '=', 'har_asignados.HAR_ID')
+                     ->where('har_asignados.HAS_ESTADO', 1);
+            })
+            ->select('hardwares.HAR_DESCRIPCION',
+                     DB::raw('COUNT(DISTINCT hardwares.HAR_ID) as total'),
+                     DB::raw('COUNT(har_asignados.HAS_ID) as asignado'))
+            ->where('hardwares.HAR_ESTADO', 1)
+            ->groupBy('hardwares.HAR_DESCRIPCION')
+            ->orderByDesc('total')
+            ->get()
+            ->map(function ($item) {
+                $disponible = $item->total - $item->asignado;
+                return [
+                    'descripcion' => $item->HAR_DESCRIPCION,
+                    'total' => $item->total,
+                    'asignado' => $item->asignado,
+                    'disponible' => $disponible,
+                ];
+            })
+            ->take(10); // Top 10 descripciones
+
         return view('Inventario.dashboard', compact(
             'totalEquipos',
             'equiposAsignados',
@@ -437,7 +519,12 @@ class EquiposController extends Controller
             'devolucionesEstadoMalo',
             'mantenimientosVencidos',
             'mantenimientosUrgentes',
-            'totalMantenimientosProximos'
+            'totalMantenimientosProximos',
+            'totalHardware',
+            'hardwareAsignado',
+            'hardwareDisponible',
+            'hardwareIndicadores',
+            'hardwarePorDesc'
         ));
     }
 

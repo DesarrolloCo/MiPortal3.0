@@ -41,6 +41,47 @@
                 <!-- ============================================================== -->
                 <!-- End Bread crumb and right sidebar toggle -->
                 <!-- ============================================================== -->
+
+                <!-- Alertas de mensajes -->
+                @if(session('rgcmessage'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <strong>Éxito!</strong> {{ session('rgcmessage') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(session('msjupdate'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <strong>Actualizado!</strong> {{ session('msjupdate') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(session('msjdelete'))
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <strong>Eliminado!</strong> {{ session('msjdelete') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <!-- ============================================================== -->
                 <!-- Start Page Content -->
                 <!-- ============================================================== -->
@@ -51,10 +92,10 @@
                                 <!-- column -->
 
                                                 <div class="table-responsive">
-                                                    <table class="table no-wrap display responsive nowrap" id="table_equipos">
-                                                        <thead>
+                                                    <table class="table no-wrap display responsive nowrap" id="table_equipos_custom">
+                                                        <thead class="bg-light">
                                                             <tr>
-                                                                <th>Nombre</th>
+                                                                <th>Asignado a</th>
                                                                 <th>Nombre</th>
                                                                 <th>Serial</th>
                                                                 <th>Área</th>
@@ -62,58 +103,119 @@
                                                                 <th>Tipo</th>
                                                                 <th>Estado</th>
                                                                 <th>Observaciones</th>
-                                                                <th>Acciones</th>
+                                                                <th class="text-center">Acciones</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             @foreach ($equipos as $list)
                                                                 <tr>
-                                                                    
-                                                                    <td>{{ $list->NOMBRE }}</td>
-                                                                    <td>{{ $list->EQU_NOMBRE }}</td>
-                                                                    <td>{{ $list->EQU_SERIAL }}</td>
-                                                                    <td>{{ $list->AREAS }}</td>
-                                                                    <td>{{ $list->EQU_PRECIO }}</td>
-                                                                    <td>{{ $list->EQU_TIPO }}</td>
-                                                                    <td>{{ $list->TIE_NOMBRE }}</td>
-                                                                    <td>{{ $list->EQU_OBSERVACIONES }}</td>
                                                                     <td>
-                                                                        <a href="{{ route('Equipo.details',$list->EQU_ID) }}" class="btn btn-success" title="Ver detalles"><i class="fas fa-eye"></i></a>
+                                                                        @if($list->NOMBRE)
+                                                                            <span class="badge badge-success px-2 py-1">
+                                                                                <i class="mdi mdi-account-check"></i> {{ $list->NOMBRE }}
+                                                                            </span>
+                                                                        @else
+                                                                            <span class="badge badge-secondary px-2 py-1">
+                                                                                <i class="mdi mdi-package"></i> Disponible
+                                                                            </span>
+                                                                        @endif
+                                                                    </td>
+                                                                    <td><strong>{{ $list->EQU_NOMBRE }}</strong></td>
+                                                                    <td><code>{{ $list->EQU_SERIAL }}</code></td>
+                                                                    <td>
+                                                                        <span class="badge badge-light border px-2 py-1">
+                                                                            <i class="mdi mdi-office-building"></i> {{ $list->AREAS ?? 'N/A' }}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="text-success font-weight-bold">
+                                                                            ${{ number_format($list->EQU_PRECIO, 0, ',', '.') }}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td>
+                                                                        @if($list->EQU_TIPO == 'Propio')
+                                                                            <span class="badge badge-primary px-2 py-1">
+                                                                                <i class="mdi mdi-check-circle"></i> {{ $list->EQU_TIPO }}
+                                                                            </span>
+                                                                        @else
+                                                                            <span class="badge badge-warning px-2 py-1">
+                                                                                <i class="mdi mdi-clock"></i> {{ $list->EQU_TIPO }}
+                                                                            </span>
+                                                                        @endif
+                                                                    </td>
+                                                                    <td>
+                                                                        @if($list->TIE_NOMBRE == 'Operativo')
+                                                                            <span class="badge badge-success px-2 py-1">
+                                                                                <i class="mdi mdi-check-circle"></i> {{ $list->TIE_NOMBRE }}
+                                                                            </span>
+                                                                        @elseif($list->TIE_NOMBRE == 'En Mantenimiento')
+                                                                            <span class="badge badge-warning px-2 py-1">
+                                                                                <i class="mdi mdi-wrench"></i> {{ $list->TIE_NOMBRE }}
+                                                                            </span>
+                                                                        @else
+                                                                            <span class="badge badge-secondary px-2 py-1">
+                                                                                <i class="mdi mdi-information"></i> {{ $list->TIE_NOMBRE }}
+                                                                            </span>
+                                                                        @endif
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="text-muted text-truncate d-inline-block" style="max-width: 200px;" title="{{ $list->EQU_OBSERVACIONES }}">
+                                                                            {{ $list->EQU_OBSERVACIONES ?? 'Sin observaciones' }}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <div class="btn-group" role="group">
+                                                                            <a href="{{ route('Equipo.details',$list->EQU_ID) }}"
+                                                                               class="btn btn-sm btn-success"
+                                                                               rel="tooltip"
+                                                                               title="Ver detalles">
+                                                                                <i class="fas fa-eye"></i>
+                                                                            </a>
 
-                                                                    <a href="{{ route('Equipo.qr.mostrar', $list->EQU_ID) }}" class="btn btn-warning" title="Ver código QR"><i class="mdi mdi-qrcode"></i></a>
+                                                                            <a href="{{ route('Equipo.qr.mostrar', $list->EQU_ID) }}"
+                                                                               class="btn btn-sm btn-warning"
+                                                                               rel="tooltip"
+                                                                               title="Ver código QR">
+                                                                                <i class="mdi mdi-qrcode"></i>
+                                                                            </a>
 
-                                                                    <a href="{{ route('Equipo.historial', $list->EQU_ID) }}" class="btn btn-info" title="Ver historial"><i class="mdi mdi-history"></i></a>
+                                                                            <a href="{{ route('Equipo.historial', $list->EQU_ID) }}"
+                                                                               class="btn btn-sm btn-info"
+                                                                               rel="tooltip"
+                                                                               title="Ver historial">
+                                                                                <i class="mdi mdi-history"></i>
+                                                                            </a>
 
-                                                                    <button type="button" class="btn btn-primary" rel="tooltip" title="Editar" data-toggle="modal" data-bs-toggle="modal" data-target="#Edit_Equipo{{ $list->EQU_ID }}" data-bs-target="#Edit_Equipo{{ $list->EQU_ID }}">
-                                                                        <i class="fas fa-edit"></i>
-                                                                    </button>
+                                                                            <button type="button"
+                                                                                    class="btn btn-sm btn-primary"
+                                                                                    rel="tooltip"
+                                                                                    title="Editar"
+                                                                                    data-toggle="modal"
+                                                                                    data-bs-toggle="modal"
+                                                                                    data-target="#Edit_Equipo{{ $list->EQU_ID }}"
+                                                                                    data-bs-target="#Edit_Equipo{{ $list->EQU_ID }}">
+                                                                                <i class="fas fa-edit"></i>
+                                                                            </button>
 
-                                                                    <form action="{{ route('Equipo.delete', $list->EQU_ID) }}" method="POST"
-                                                                        style="display: inline-block; ">
-                                                                        @csrf
-                                                                        @method('DELETE')
+                                                                            <form action="{{ route('Equipo.delete', $list->EQU_ID) }}"
+                                                                                  method="POST"
+                                                                                  style="display: inline-block;">
+                                                                                @csrf
+                                                                                @method('DELETE')
 
-                                                                        <button type="submit" class="btn btn-danger" rel="tooltip"
-                                                                            onclick="return confirm('Seguro que quiere eliminar este cargo?') ">
-                                                                            <i class="fas fa-trash-alt" title="Eliminar Registro"></i>
-                                                                        </button>
-
-                                                                    </form>
+                                                                                <button type="submit"
+                                                                                        class="btn btn-sm btn-danger"
+                                                                                        rel="tooltip"
+                                                                                        title="Eliminar equipo"
+                                                                                        onclick="return confirm('¿Seguro que quiere eliminar este equipo?')">
+                                                                                    <i class="fas fa-trash-alt"></i>
+                                                                                </button>
+                                                                            </form>
+                                                                        </div>
                                                                     </td>
                                                                 </tr>
                                                                 @include('Inventario.Equipo.edit')
                                                             @endforeach
-                                                            {{-- <tr>
-                                                                <td><a href="javascript:void(0)">Order #26589</a></td>
-                                                                <td>Herman Beck</td>
-                                                                <td><span class="text-muted"><i class="far fa-clock"></i> Oct 16, 2019</span> </td>
-                                                                <td>$45.00</td>
-                                                                <td>
-                                                                    <div class="label label-table label-success">Paid</div>
-                                                                </td>
-                                                                <td>EN</td>
-                                                            </tr> --}}
-
                                                         </tbody>
                                                     </table>
                                                 </div>
@@ -134,6 +236,75 @@
 
 @section('scripts')
 <style>
+    /* Mejoras visuales para la tabla de equipos */
+    #table_equipos_custom tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    #table_equipos_custom tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .badge {
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    code {
+        background-color: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.9rem;
+    }
+
+    .btn-group .btn {
+        margin: 0 2px;
+    }
+
+    /* Animación suave para los badges */
+    .badge {
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    /* Mejorar visualización de alertas */
+    .alert {
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Estilo para cards */
+    .card {
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        border: none;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Mejorar visualización de thead */
+    thead.bg-light th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        color: #5a6268;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    /* Text truncate helper */
+    .text-truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
 /* Modal Override Styles */
 .modal {
     position: fixed !important;
@@ -195,6 +366,33 @@
 <script>
 $(document).ready(function() {
     console.log('Equipos modal script loaded');
+
+    // Verificar si DataTable ya existe y destruirla antes de reinicializar
+    if ($.fn.DataTable.isDataTable('#table_equipos_custom')) {
+        $('#table_equipos_custom').DataTable().destroy();
+    }
+
+    // Inicializar DataTable con opciones mejoradas
+    $('#table_equipos_custom').DataTable({
+        "language": {
+            "url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/es-ES.json"
+        },
+        "pageLength": 25,
+        "order": [[1, "asc"]], // Ordenar por nombre equipo
+        "columnDefs": [
+            { "orderable": false, "targets": 8 } // Desactivar ordenamiento en columna de acciones
+        ],
+        "responsive": true,
+        "autoWidth": false
+    });
+
+    // Inicializar tooltips
+    $('[rel="tooltip"]').tooltip();
+
+    // Auto-cerrar alertas después de 10 segundos
+    setTimeout(function() {
+        $('.alert').fadeOut('slow');
+    }, 10000);
 
     // Simple click handler for add button
     $('[data-target="#Add_Equipos"]').click(function(e) {

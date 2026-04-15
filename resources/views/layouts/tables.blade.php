@@ -18,15 +18,67 @@
     }
 }
 
+    // NOTA: La tabla #table_equipos ahora se inicializa en su vista específica con configuración optimizada
+    // Ver: resources/views/Malla/Empleado/index.blade.php
+
     $(document).ready( function () {
-        $('#table_equipos').DataTable({
+        $('#table_mantenimiento').DataTable({
             "language":{
                 "url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/es-ES.json"
             }
         });
     } );
     $(document).ready( function () {
-        $('#table_mantenimiento').DataTable({
+        $('#table_cargo').DataTable({
+            "language":{
+                "url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/es-ES.json"
+            }
+        });
+    } );
+    $(document).ready( function () {
+        $('#table_individual').DataTable({
+            "language":{
+                "url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/es-ES.json"
+            }
+        });
+    } );
+    $(document).ready( function () {
+        $('#table_campana').DataTable({
+            "language":{
+                "url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/es-ES.json"
+            }
+        });
+    } );
+    $(document).ready( function () {
+        $('#table_cargos').DataTable({
+            "language":{
+                "url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/es-ES.json"
+            }
+        });
+    } );
+    $(document).ready( function () {
+        $('#table_jornadas').DataTable({
+            "language":{
+                "url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/es-ES.json"
+            }
+        });
+    } );
+    $(document).ready( function () {
+        $('#table_uni_cli').DataTable({
+            "language":{
+                "url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/es-ES.json"
+            }
+        });
+    } );
+    $(document).ready( function () {
+        $('#table_unidad_negocio').DataTable({
+            "language":{
+                "url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/es-ES.json"
+            }
+        });
+    } );
+    $(document).ready( function () {
+        $('#table_cliente').DataTable({
             "language":{
                 "url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/es-ES.json"
             }

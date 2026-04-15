@@ -24,6 +24,7 @@ class Unidad_negociosController extends Controller
 
     public function index()
     {
+        $this->authorize('ver-uni_negocio');
         //
         $unidad_negocio = unidad_negocio::where('UNI_ESTADO', '=', '1')->get();
         return view('Malla.Unidad_Negocio.index', compact('unidad_negocio'));
@@ -36,6 +37,7 @@ class Unidad_negociosController extends Controller
      */
     public function create(request $request)
     {
+        $this->authorize('crear-uni_negocio');
         //
         $request->validate([
             'UNI_NOMBRE' => 'required',
@@ -90,6 +92,7 @@ class Unidad_negociosController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->authorize('opciones-uni_negocio');
         //
         $datosUniNegocios = request()->except(['_token','_method']);
         unidad_negocio::where('UNI_ID','=', $id)->update($datosUniNegocios);
@@ -107,6 +110,7 @@ class Unidad_negociosController extends Controller
      */
     public function destroy($id)
     {
+        $this->authorize('opciones-uni_negocio');
         //
         /* unidad_negocio::where('UNI_ID', $id)->delete(); */
         unidad_negocio::where('UNI_ID', $id)->update(['UNI_ESTADO' => '0']);

@@ -142,20 +142,16 @@
                 <td>{{ $equipo['nombre'] }}</td>
             </tr>
             <tr>
-                <td>Marca:</td>
-                <td>{{ $equipo['marca'] ?? 'N/A' }}</td>
-            </tr>
-            <tr>
-                <td>Modelo:</td>
-                <td>{{ $equipo['modelo'] ?? 'N/A' }}</td>
-            </tr>
-            <tr>
                 <td>Serial:</td>
                 <td><strong>{{ $equipo['serial'] }}</strong></td>
             </tr>
             <tr>
-                <td>Descripción:</td>
-                <td>{{ $equipo['descripcion'] ?? 'N/A' }}</td>
+                <td>Tipo:</td>
+                <td>{{ $equipo['tipo'] ?? 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td>Observaciones:</td>
+                <td>{{ $equipo['observaciones'] ?? 'N/A' }}</td>
             </tr>
         </table>
     </div>

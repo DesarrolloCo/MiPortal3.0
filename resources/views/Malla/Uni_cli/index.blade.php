@@ -35,7 +35,7 @@
 
                                 <!-- column -->
                                 <div class="table-responsive">
-                                    <table class="table no-wrap display responsive nowrap" id="table_equipos">
+                                    <table class="table no-wrap display responsive nowrap" id="table_uni_cli">
                                         <thead>
                                             <tr>
                                                 <th>Unidad de negocio</th>

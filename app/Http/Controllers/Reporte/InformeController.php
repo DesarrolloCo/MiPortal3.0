@@ -25,40 +25,57 @@ class InformeController extends Controller
     {
         $this->middleware('auth');
     }
-    public function index()
+    public function index(Request $request)
     {
-        //
-        $ids = Auth::user()->id;
-        if(Auth::user()->hasPermissionTo('cliente_informe')){
-            $sql = "SELECT inf.INF_ID, inf.INF_NOMBRE, inf.INF_URL, inf.CLI_ID, cam.CAM_NOMBRE, cam.CAM_ID, usu.id, usu.name
-            FROM `informes` AS  inf
-            INNER JOIN campanas AS cam ON cam.CAM_ID = inf.CAM_ID
-            INNER JOIN users AS usu ON usu.id = inf.CLI_ID
-            WHERE INF_ESTADO = 1 AND CLI_ID =". $ids;
-        }else{
-            $sql = "SELECT inf.INF_ID, inf.INF_NOMBRE, inf.INF_URL, inf.CLI_ID, cam.CAM_NOMBRE, cam.CAM_ID, usu.id, usu.name
-            FROM `informes` AS  inf
-            INNER JOIN campanas AS cam ON cam.CAM_ID = inf.CAM_ID
-            LEFT JOIN users AS usu ON usu.id = inf.CLI_ID
-            WHERE INF_ESTADO = 1;";
+        // Iniciar query con Eloquent y eager loading
+        $query = informe::with(['campana', 'cliente'])
+            ->where('INF_ESTADO', 1);
+
+        // Filtrar por cliente si tiene el permiso específico
+        if (Auth::user()->hasPermissionTo('cliente_informe')) {
+            $query->where('CLI_ID', Auth::user()->id);
         }
 
+        // Filtro por búsqueda
+        if ($request->filled('buscar')) {
+            $buscar = $request->buscar;
+            $query->where(function ($q) use ($buscar) {
+                $q->where('INF_NOMBRE', 'like', "%{$buscar}%")
+                  ->orWhere('INF_URL', 'like', "%{$buscar}%")
+                  ->orWhereHas('campana', function ($q2) use ($buscar) {
+                      $q2->where('CAM_NOMBRE', 'like', "%{$buscar}%");
+                  });
+            });
+        }
 
-        $campanas = campana::where('CAM_ESTADO', '=', '1')->get();
+        // Filtro por proyecto/campaña
+        if ($request->filled('proyecto')) {
+            $query->where('CAM_ID', $request->proyecto);
+        }
+
+        // Filtro por cliente
+        if ($request->filled('cliente')) {
+            $query->where('CLI_ID', $request->cliente);
+        }
+
+        // Ordenar y paginar
+        $informes = $query->orderBy('INF_ID', 'desc')
+            ->paginate(15)
+            ->appends($request->all());
+
+        // Obtener campañas y clientes para los selects
+        $campanas = campana::where('CAM_ESTADO', '=', '1')
+            ->orderBy('CAM_NOMBRE', 'asc')
+            ->get();
+
         $clientes = User::where('estado', '1')
-        ->whereHas('roles', function ($query) {
-            $query->where('name', 'Cliente mi reportes');
-        })
-        ->get();
+            ->whereHas('roles', function ($query) {
+                $query->where('name', 'Cliente mi reportes');
+            })
+            ->orderBy('name', 'asc')
+            ->get();
 
-        /* $sql2 = "
-        ;"; */
-
-
-        $informe = DB::select($sql);
-        /* $clientes = DB::select($sql2); */
-
-        return view('Reporte.Informe.index', compact('campanas', 'informe', 'clientes'));
+        return view('Reporte.Informe.index', compact('campanas', 'informes', 'clientes'));
     }
 
     /**
@@ -66,13 +83,26 @@ class InformeController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
-        //
-        $datosInforme = request()->except('_token');
-        informe::insert($datosInforme);
+        // Validar datos
+        $request->validate([
+            'INF_NOMBRE' => 'required|string|max:255',
+            'INF_URL' => 'required|string|max:500',
+            'CAM_ID' => 'required|exists:campanas,CAM_ID',
+            'CLI_ID' => 'nullable|exists:users,id'
+        ]);
 
-        return redirect()->back()->with('rgcmessage', 'Informe cargado con exito!...');
+        // Crear informe con datos validados
+        informe::create([
+            'INF_NOMBRE' => $request->INF_NOMBRE,
+            'INF_URL' => $request->INF_URL,
+            'CAM_ID' => $request->CAM_ID,
+            'CLI_ID' => $request->CLI_ID == 0 ? null : $request->CLI_ID,
+            'INF_ESTADO' => 1
+        ]);
+
+        return redirect()->back()->with('rgcmessage', 'Informe creado exitosamente');
     }
 
     /**
@@ -117,11 +147,23 @@ class InformeController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
-        $datosInforme = request()->except(['_token','_method']);
-        informe::where('INF_ID','=', $id)->update($datosInforme);
+        // Validar datos
+        $request->validate([
+            'INF_NOMBRE' => 'required|string|max:255',
+            'INF_URL' => 'required|string|max:500',
+            'CAM_ID' => 'required|exists:campanas,CAM_ID',
+            'CLI_ID' => 'nullable|exists:users,id'
+        ]);
 
-        Session::flash('msjupdate', '¡El informe se a actualizado correctamente!...');
+        // Actualizar informe
+        informe::where('INF_ID', $id)->update([
+            'INF_NOMBRE' => $request->INF_NOMBRE,
+            'INF_URL' => $request->INF_URL,
+            'CAM_ID' => $request->CAM_ID,
+            'CLI_ID' => $request->CLI_ID == 0 ? null : $request->CLI_ID
+        ]);
+
+        Session::flash('msjupdate', 'Informe actualizado correctamente');
         return redirect()->back();
     }
 
@@ -141,13 +183,12 @@ class InformeController extends Controller
 
     public function reportes($id)
     {
-        //
-        $sql = "SELECT inf.INF_ID, inf.INF_NOMBRE, inf.INF_URL, cam.CAM_NOMBRE, cam.CAM_ID
-        FROM `informes` AS  inf
-        INNER JOIN campanas AS cam ON cam.CAM_ID = inf.CAM_ID
-        WHERE INF_ESTADO = 1 and inf.INF_ID = ".$id;
+        // Usar Eloquent para obtener el informe con su campaña
+        $informe = informe::with('campana')
+            ->where('INF_ESTADO', 1)
+            ->where('INF_ID', $id)
+            ->firstOrFail();
 
-        $informe = DB::select($sql);
         return view('Reporte.Informe.informe', compact('informe'));
     }
 

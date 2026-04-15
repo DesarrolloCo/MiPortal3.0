@@ -142,6 +142,18 @@ Route::put('/Individual_editar_time/{id}', [App\Http\Controllers\Malla\Individua
 Route::post('/Individual_editar_time_multiple', [App\Http\Controllers\Malla\IndividualController::class, 'time_status_multiple'])->name('Individual.time_status_multiple');
 Route::put('/Individual_editar_time_delete/{id}', [App\Http\Controllers\Malla\IndividualController::class, 'delete_time_status'])->name('Individual.delete_time_status');
 
+// API para cargar campañas dinámicamente por cliente
+Route::get('/get-campanas/{clienteId}', function ($clienteId) {
+    $uniclis = \App\Models\uni_cli::where('CLI_ID', $clienteId)
+        ->where('UNC_ESTADO', 1)
+        ->pluck('UNC_ID');
+
+    return \App\Models\campana::whereIn('UNC_ID', $uniclis)
+        ->where('CAM_ESTADO', '1')
+        ->select('CAM_ID', 'CAM_NOMBRE')
+        ->orderBy('CAM_NOMBRE')
+        ->get();
+});
 
 Route::delete('/Malla/delete/{id}', [App\Http\Controllers\Malla\SupervisorController::class, 'destroy'])->name('Malla.delete');
 
@@ -226,12 +238,15 @@ Route::delete('/Inventario/Asigancion_equipos/delete/{id}', [App\Http\Controller
 Route::post('/Inventario/Asigancion_equipos2', [App\Http\Controllers\Inventario\Equ_asignadoController::class, 'evidencia'])->name('Asignacion_equipo.create2');
 Route::post('/Inventario/Asigancion_equipos/devolver/{id}', [App\Http\Controllers\Inventario\Equ_asignadoController::class, 'devolver'])->name('Asignacion_equipo.devolver');
 Route::get('/Inventario/Devoluciones/acta/{id}', [App\Http\Controllers\Inventario\Equ_asignadoController::class, 'generarActaDevolucion'])->name('Asignacion_equipo.acta_devolucion');
+Route::get('/Inventario/Asignaciones/acta/{id}', [App\Http\Controllers\Inventario\Equ_asignadoController::class, 'generarActaEntrega'])->name('Asignacion_equipo.acta_entrega');
 
 //INVENTARIO :: MANTENIMIENTO
 Route::get('/Mantenimiento', [App\Http\Controllers\Inventario\MantenimientoController::class, 'index'])->name('Mantenimiento.index');
 Route::post('/Inventario/Mantenimiento', [App\Http\Controllers\Inventario\MantenimientoController::class, 'create'])->name('Mantenimiento.create');
 Route::post('/Inventario/Mantenimiento/maintenance', [App\Http\Controllers\Inventario\MantenimientoController::class, 'maintenance'])->name('Mantenimiento.maintenance');
 Route::get('/Mantenimiento_details/{id}', [App\Http\Controllers\Inventario\MantenimientoController::class, 'details'])->name('Mantenimiento.details');
+Route::get('/Inventario/Mantenimiento/reporte/{id}', [App\Http\Controllers\Inventario\MantenimientoController::class, 'generarReportePDF'])->name('Mantenimiento.reporte');
+Route::get('/Inventario/Mantenimiento/exportar', [App\Http\Controllers\Inventario\MantenimientoController::class, 'exportarExcel'])->name('Mantenimiento.exportar');
 //AJAX :: SELECT :: MANTENIMIENTO
 Route::get('/Select', [App\Http\Controllers\Inventario\SelectController::class, 'equipos_select'])->name('Select.equipo');
 
@@ -277,7 +292,7 @@ Route::delete('/Inventario/Estado/delete/{id}', [App\Http\Controllers\Inventario
 
 //VISITA :: VISTA
 Route::get('/Visita', [App\Http\Controllers\Visita\VisitaController::class, 'index'])->name('Visita.index');
-Route::post('/Visita/create', [App\Http\Controllers\Visita\VisitaController::class, 'create'])->name('Visita.create');
+Route::post('/Visita', [App\Http\Controllers\Visita\VisitaController::class, 'store'])->name('Visita.store');
 Route::put('/Visita/exit/{id}', [App\Http\Controllers\Visita\VisitaController::class, 'exit'])->name('Visita.exit');
 Route::get('/Visita/reportes', [App\Http\Controllers\Visita\ReportevisitaController::class, 'reportes'])->name('Visita.reportes');
 /*Route::put('/Visita/update/{id}', [App\Http\Controllers\Visita\VisitaController::class, 'update'])->name('Visita.update');

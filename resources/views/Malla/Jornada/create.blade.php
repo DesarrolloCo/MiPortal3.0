@@ -15,7 +15,8 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Hora inicial</label>
-                                <select name="JOR_INICIO" id="JOR_INICIO" class="form-control">
+                                <select name="JOR_INICIO" id="JOR_INICIO" class="form-control" required>
+                                    <option value="">Seleccionar hora</option>
                                     @foreach ($horas as $hor)
                                         <option value="{{ $hor->HOR_ID }}">{{ $hor->HOR_INICIO }}</option>
                                     @endforeach
@@ -25,7 +26,34 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Hora final</label>
-                                <select name="JOR_FINAL" id="JOR_FINAL" class="form-control">
+                                <select name="JOR_FINAL" id="JOR_FINAL" class="form-control" required>
+                                    <option value="">Seleccionar hora</option>
+                                    @foreach ($horas as $hor)
+                                        <option value="{{ $hor->HOR_ID }}">{{ $hor->HOR_FINAL }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección de Almuerzo -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Hora inicio almuerzo <small class="text-muted">(opcional)</small></label>
+                                <select name="JOR_ALMUERZO_INICIO" id="JOR_ALMUERZO_INICIO" class="form-control">
+                                    <option value="">Sin almuerzo</option>
+                                    @foreach ($horas as $hor)
+                                        <option value="{{ $hor->HOR_ID }}">{{ $hor->HOR_INICIO }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Hora fin almuerzo <small class="text-muted">(opcional)</small></label>
+                                <select name="JOR_ALMUERZO_FIN" id="JOR_ALMUERZO_FIN" class="form-control">
+                                    <option value="">Sin almuerzo</option>
                                     @foreach ($horas as $hor)
                                         <option value="{{ $hor->HOR_ID }}">{{ $hor->HOR_FINAL }}</option>
                                     @endforeach

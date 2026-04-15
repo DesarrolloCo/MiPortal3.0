@@ -26,9 +26,15 @@ class UserController extends Controller
      */
     public function index()
     {
-        //
-        $roles =  Role::pluck('name','name')->all();
-        $Users = User::where('estado', '=','1')->get();
+        // Cargar roles para el formulario
+        $roles = Role::pluck('name','name')->all();
+
+        // Cargar usuarios con sus roles usando eager loading (previene N+1 queries)
+        $Users = User::with('roles')
+            ->where('estado', '1')
+            ->orderBy('name')
+            ->get();
+
         return view('main.Users.index', compact('Users', 'roles'));
     }
 

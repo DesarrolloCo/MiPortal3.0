@@ -30,13 +30,21 @@
         <div class="col-12">
             <div class="card shadow-lg border-0">
                 <div class="card-body p-4">
-                    @if ($novedad->NOV_ESTADO_APROBACION !== 'pendiente')
-                        <div class="alert alert-warning border-left-warning">
-                            <i class="mdi mdi-alert-circle me-2"></i>
-                            <strong>Advertencia:</strong> Esta novedad ya ha sido procesada ({{ $novedad->estado_texto }}).
-                            Solo se permite edición de novedades pendientes.
+                    @if ($novedad->NOV_ESTADO_APROBACION === 'aprobada')
+                        <div class="alert alert-danger border-left-danger">
+                            <i class="mdi mdi-block-helper me-2"></i>
+                            <strong>Error:</strong> Esta novedad ya ha sido aprobada y no puede editarse.
                         </div>
-                    @else
+                    @elseif ($novedad->NOV_ESTADO_APROBACION === 'rechazada')
+                        <div class="alert alert-info border-left-info">
+                            <i class="mdi mdi-information-outline me-2"></i>
+                            <strong>Reenvío de novedad:</strong> Esta novedad fue rechazada anteriormente.
+                            Puede editarla y volver a enviarla para aprobación.
+                            @if ($novedad->NOV_OBSERVACIONES)
+                                <br><strong>Motivo del rechazo:</strong> {{ $novedad->NOV_OBSERVACIONES }}
+                             @endif
+                        </div>
+                    @elseif (in_array($novedad->NOV_ESTADO_APROBACION, ['pendiente', 'rechazada']))
                         <form method="POST" action="{{ route('Novedades.update', $novedad->NOV_ID) }}"
                             enctype="multipart/form-data" id="novedadForm">
                             @csrf

@@ -9,13 +9,13 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form action="{{ route('Contrato.create', $empleado[0]->EMP_ID) }}" method="POST">
+                <form action="{{ route('Contrato.create', $empleado->EMP_ID) }}" method="POST">
                     @csrf
 
                     <input type="hidden" class="form-control" id="USER_CREATED" name="USER_CREATED"
-                        value="{{ Auth::user()->id }}"required>
+                        value="{{ Auth::user()->id }}" required>
                     <input type="hidden" class="form-control" id="EMP_ID" name="EMP_ID"
-                        value="{{ $empleado[0]->EMP_ID }}"required>
+                        value="{{ $empleado->EMP_ID }}" required>
 
                     <div class="form-group">
                         <label>Cargo</label>
