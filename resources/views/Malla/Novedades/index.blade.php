@@ -282,13 +282,29 @@
                                             </span>
                                         </td>
                                         <td>{{ $novedad->usuario->name ?? 'N/A' }}</td>
-                                        <td>
-                                            <a href="{{ route('Novedades.show', $novedad->NOV_ID) }}"
-                                                class="btn btn-info btn-sm" rel="tooltip" title="Ver">
-                                                <i class="mdi mdi-eye"></i>
-                                            </a>
+                                         <td>
+                                             <a href="{{ route('Novedades.show', $novedad->NOV_ID) }}"
+                                                 class="btn btn-info btn-sm" rel="tooltip" title="Ver">
+                                                 <i class="mdi mdi-eye"></i>
+                                             </a>
 
                                              @if ($novedad->NOV_ESTADO_APROBACION === 'pendiente')
+                                                 <form method="POST"
+                                                     action="{{ route('Novedades.aprobar', $novedad->NOV_ID) }}"
+                                                     style="display: inline-block;">
+                                                     @csrf
+                                                     <button type="submit" class="btn btn-success btn-sm" rel="tooltip"
+                                                         title="Aprobar novedad">
+                                                         <i class="mdi mdi-check"></i>
+                                                     </button>
+                                                 </form>
+
+                                                 <button type="button" class="btn btn-danger btn-sm" rel="tooltip"
+                                                     title="Rechazar novedad"
+                                                     onclick="showRejectModal({{ $novedad->NOV_ID }}, '{{ addslashes($novedad->empleado->EMP_NOMBRES ?? 'N/A') }}')">
+                                                     <i class="mdi mdi-close"></i>
+                                                 </button>
+
                                                  <a href="{{ route('Novedades.edit', $novedad->NOV_ID) }}"
                                                      class="btn btn-warning btn-sm" rel="tooltip" title="Editar">
                                                      <i class="mdi mdi-pencil"></i>
@@ -310,7 +326,7 @@
                                                      <i class="mdi mdi-pencil"></i>
                                                  </a>
                                              @endif
-                                        </td>
+                                         </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -885,8 +901,17 @@
                 console.log('Scroll desbloqueado manualmente');
             };
 
-            // Monitorear si el scroll está bloqueado y mostrar botón de emergencia
-            function checkScrollStatus() {
+        // Función para mostrar modal de rechazo
+        window.showRejectModal = function(novedadId, empleadoNombre) {
+            $('#rejectNovedadId').val(novedadId);
+            $('#rejectEmpleadoNombre').text(empleadoNombre);
+            // Actualizar el action del form
+            $('#rejectModal form').attr('action', '{{ route("Novedades.rechazar", ":id") }}'.replace(':id', novedadId));
+            $('#rejectModal').modal('show');
+        };
+
+        // Monitorear si el scroll está bloqueado y mostrar botón de emergencia
+        function checkScrollStatus() {
                 const bodyOverflow = $('body').css('overflow');
                 const bodyOverflowY = $('body').css('overflow-y');
                 const hasModalOpen = $('body').hasClass('modal-open');
@@ -903,11 +928,60 @@
 
             // Verificar estado del scroll cada 2 segundos
             setInterval(checkScrollStatus, 2000);
+        });
 
-            // Verificar inmediatamente
-            setTimeout(checkScrollStatus, 1000);
-
-            console.log('Novedades module loaded - scroll should be unlocked');
+        // Limpiar intervalos al salir
+        $(window).on('beforeunload', function() {
+            if (window.checkInterval) {
+                clearInterval(window.checkInterval);
+            }
         });
     </script>
+
+    <!-- Modal de Rechazo de Novedad -->
+    <div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rejectModalLabel">
+                        <i class="mdi mdi-close-thick text-danger"></i> Rechazar Novedad
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form method="POST" action="">
+                    @csrf
+                    <input type="hidden" name="novedad_id" id="rejectNovedadId">
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="mdi mdi-alert-circle-outline"></i>
+                            <strong>Advertencia:</strong> Está a punto de rechazar la novedad de <strong id="rejectEmpleadoNombre"></strong>.
+                            El usuario podrá editarla y reenviarla para nueva evaluación.
+                        </div>
+                        <div class="form-group">
+                            <label for="observaciones" class="form-label required">
+                                <i class="mdi mdi-comment-text-outline"></i> Motivo del rechazo
+                            </label>
+                            <textarea name="observaciones" id="observaciones" class="form-control"
+                                rows="4" placeholder="Explique detalladamente el motivo del rechazo..."
+                                required maxlength="500"></textarea>
+                            <div class="form-text">
+                                Máximo 500 caracteres. Esta información será visible para el usuario que creó la novedad.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="mdi mdi-close"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="mdi mdi-close-thick"></i> Rechazar Novedad
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 @endsection
