@@ -161,13 +161,12 @@
             // Función para cargar lista de notificaciones recientes
             function cargarListaNotificaciones() {
                 $.ajax({
-                    url: '{{ route("extranet.notificaciones.index") }}' + '?limit=5',
+                    url: '{{ route("extranet.notificaciones.recientes") }}',
                     type: 'GET',
                     success: function(response) {
                         let html = '';
 
-                        // Verificar si viene de paginate o de limit
-                        const notificaciones = response.notificaciones.data || response.notificaciones;
+                        const notificaciones = response.notificaciones;
 
                         if (notificaciones && notificaciones.length > 0) {
                             notificaciones.forEach(function(notif) {

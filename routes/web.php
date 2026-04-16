@@ -403,4 +403,5 @@ Route::middleware(['auth'])->prefix('extranet')->name('extranet.')->group(functi
     Route::post('/notificaciones/marcar-todas-leidas', [App\Http\Controllers\Extranet\NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.marcar-todas-leidas');
     Route::delete('/notificaciones/{id}', [App\Http\Controllers\Extranet\NotificacionController::class, 'eliminar'])->name('notificaciones.eliminar');
     Route::get('/notificaciones/no-leidas', [App\Http\Controllers\Extranet\NotificacionController::class, 'getNoLeidas'])->name('notificaciones.no-leidas');
+    Route::get('/notificaciones/recientes', [App\Http\Controllers\Extranet\NotificacionController::class, 'getRecientes'])->name('notificaciones.recientes');
 });

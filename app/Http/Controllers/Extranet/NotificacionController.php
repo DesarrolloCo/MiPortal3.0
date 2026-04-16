@@ -25,17 +25,7 @@ class NotificacionController extends Controller
             $query->where('tipo', $request->tipo);
         }
 
-        // Limitar resultados para dropdown si se especifica
-        if ($request->has('limit')) {
-            $notificaciones = $query->orderBy('created_at', 'DESC')->limit($request->limit)->get();
-            // Crear un objeto simple que simule la estructura de paginate
-            $notificacionesData = $notificaciones;
-            $notificaciones = (object) [
-                'data' => $notificacionesData
-            ];
-        } else {
-            $notificaciones = $query->orderBy('created_at', 'DESC')->paginate(20);
-        }
+        $notificaciones = $query->orderBy('created_at', 'DESC')->paginate(20);
 
         return view('extranet.notificaciones.index', compact('notificaciones'));
     }
@@ -108,5 +98,21 @@ class NotificacionController extends Controller
             ->count();
 
         return response()->json(['count' => $count]);
+    }
+
+    public function getRecientes()
+    {
+        $empleado = Auth::user()->empleados;
+
+        if (!$empleado) {
+            return response()->json(['notificaciones' => []]);
+        }
+
+        $notificaciones = NotificacionExtranet::where('empleado_id', $empleado->EMP_ID)
+            ->orderBy('created_at', 'DESC')
+            ->limit(5)
+            ->get();
+
+        return response()->json(['notificaciones' => $notificaciones]);
     }
 }
