@@ -298,7 +298,7 @@ class IndividualController extends Controller
         $campanas = campana::where('CAM_ESTADO', '=', '1')->get();
         $uni_negocios = unidad_negocio::where('UNI_ESTADO', '=', '1')->get();
         $clientes = cliente::where('CLI_ESTADO', '=', '1')->get();
-        $jornadas = jornada::activas()->get();
+        $jornadas = jornada::activas()->delUsuario()->get();
 
         // Usar Eloquent en lugar de SQL raw
         $empleado = empleado::with('cargo')

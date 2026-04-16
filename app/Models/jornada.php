@@ -63,6 +63,13 @@ class jornada extends Model
         return $query->where('JOR_ESTADO', 1);
     }
 
+    // Scope para jornadas del usuario actual
+    public function scopeDelUsuario($query, $userId = null)
+    {
+        $userId = $userId ?? auth()->id();
+        return $query->where('USER_ID', $userId);
+    }
+
     // Obtener todas las horas de la jornada
     public function obtenerHoras(): Collection
     {
