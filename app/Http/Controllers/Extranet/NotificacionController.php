@@ -42,7 +42,7 @@ class NotificacionController extends Controller
 
         $notificacion->update([
             'leida' => true,
-            'leida_at' => now(),
+            'fecha_lectura' => now(),
         ]);
 
         return redirect()->back()
@@ -62,7 +62,7 @@ class NotificacionController extends Controller
             ->where('leida', false)
             ->update([
                 'leida' => true,
-                'leida_at' => now(),
+                'fecha_lectura' => now(),
             ]);
 
         return redirect()->back()

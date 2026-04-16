@@ -170,11 +170,11 @@
 
                         if (notificaciones && notificaciones.length > 0) {
                             notificaciones.forEach(function(notif) {
-                                const iconClass = notif.icono ? `mdi mdi-${notif.icono}` : 'mdi mdi-bell';
-                                const colorClass = notif.importante ? 'text-danger' : 'text-muted';
+                                const iconClass = 'mdi mdi-bell';
+                                const colorClass = 'text-muted';
 
                                 html += `
-                                    <a href="${notif.url || '#'}" class="dropdown-item d-flex align-items-start py-2 ${!notif.leida ? 'bg-light' : ''}">
+                                    <a href="#" class="dropdown-item d-flex align-items-start py-2 ${!notif.leida ? 'bg-light' : ''}">
                                         <div class="mr-3">
                                             <i class="${iconClass} ${colorClass}" style="font-size: 18px;"></i>
                                         </div>
@@ -184,7 +184,6 @@
                                             </div>
                                             <small class="text-muted">
                                                 Hace ${calcularTiempoTranscurrido(notif.created_at)}
-                                                ${notif.importante ? ' <span class="badge badge-danger badge-sm">Importante</span>' : ''}
                                             </small>
                                         </div>
                                         ${!notif.leida ? '<div class="ml-2"><span class="badge badge-primary badge-sm">Nueva</span></div>' : ''}

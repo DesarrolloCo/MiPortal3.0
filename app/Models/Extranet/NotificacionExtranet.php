@@ -17,20 +17,15 @@ class NotificacionExtranet extends Model
         'tipo',
         'titulo',
         'mensaje',
-        'referencia_tipo',
-        'referencia_id',
-        'url',
-        'icono',
-        'color',
+        'datos_adicionales',
         'leida',
-        'leida_at',
-        'importante',
+        'fecha_lectura',
     ];
 
     protected $casts = [
         'leida' => 'boolean',
-        'leida_at' => 'datetime',
-        'importante' => 'boolean',
+        'fecha_lectura' => 'datetime',
+        'datos_adicionales' => 'array',
     ];
 
     // Relaciones
@@ -71,7 +66,7 @@ class NotificacionExtranet extends Model
     {
         $this->update([
             'leida' => true,
-            'leida_at' => now(),
+            'fecha_lectura' => now(),
         ]);
     }
 
@@ -79,53 +74,20 @@ class NotificacionExtranet extends Model
     {
         $this->update([
             'leida' => false,
-            'leida_at' => null,
+            'fecha_lectura' => null,
         ]);
     }
 
     // Método estático para crear notificación
     public static function crear($datos)
     {
-        // Establecer valores por defecto según el tipo
-        $iconos = [
-            'comunicado' => 'bullhorn',
-            'proyecto' => 'briefcase',
-            'evento' => 'calendar',
-            'reconocimiento' => 'trophy',
-            'comentario' => 'comment',
-            'reaccion' => 'heart',
-            'mencion' => 'at',
-            'cumpleanos' => 'cake',
-            'aniversario' => 'party-popper',
-            'sistema' => 'cog',
-        ];
-
-        $colores = [
-            'comunicado' => '#17a2b8',
-            'proyecto' => '#007bff',
-            'evento' => '#ffc107',
-            'reconocimiento' => '#28a745',
-            'comentario' => '#6c757d',
-            'reaccion' => '#dc3545',
-            'mencion' => '#17a2b8',
-            'cumpleanos' => '#e83e8c',
-            'aniversario' => '#6f42c1',
-            'sistema' => '#6c757d',
-        ];
-
-        $tipo = $datos['tipo'] ?? 'sistema';
-
         return self::create([
             'empleado_id' => $datos['empleado_id'],
-            'tipo' => $tipo,
+            'tipo' => $datos['tipo'] ?? 'sistema',
             'titulo' => $datos['titulo'],
             'mensaje' => $datos['mensaje'] ?? null,
-            'referencia_tipo' => $datos['referencia_tipo'] ?? null,
-            'referencia_id' => $datos['referencia_id'] ?? null,
-            'url' => $datos['url'] ?? null,
-            'icono' => $datos['icono'] ?? $iconos[$tipo] ?? 'bell',
-            'color' => $datos['color'] ?? $colores[$tipo] ?? '#6c757d',
-            'importante' => $datos['importante'] ?? false,
+            'datos_adicionales' => $datos['datos_adicionales'] ?? null,
+            'leida' => false,
         ]);
     }
 }
