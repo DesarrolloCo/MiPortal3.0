@@ -222,22 +222,46 @@ class NovedadesController extends Controller
 
             // Crear notificación para el empleado
             try {
-                NotificacionExtranet::crear([
+                // Obtener el nombre del tipo de novedad
+                $tipoNovedad = \App\Models\tipos_novedade::find($request->TIN_ID);
+                $tipoNombre = $tipoNovedad ? $tipoNovedad->TIN_NOMBRE : 'Novedad';
+
+                // Verificar que el empleado tenga ID válido
+                if (!$request->EMP_ID) {
+                    Log::warning("Intento de crear notificación sin EMP_ID válido", [
+                        'request_data' => $request->all(),
+                        'novedad_id' => $novedad->NOV_ID
+                    ]);
+                    throw new \Exception("EMP_ID no válido");
+                }
+
+                $notifData = [
                     'empleado_id' => $request->EMP_ID,
                     'tipo' => 'sistema',
                     'titulo' => 'Novedad Registrada',
-                    'mensaje' => 'Tu novedad "' . $novedad->tipoNovedad->TIN_NOMBRE . '" ha sido registrada exitosamente y está pendiente de aprobación.',
+                    'mensaje' => 'Tu novedad "' . $tipoNombre . '" ha sido registrada exitosamente y está pendiente de aprobación.',
                     'datos_adicionales' => [
                         'novedad_id' => $novedad->NOV_ID,
-                        'tipo_novedad' => $novedad->tipoNovedad->TIN_NOMBRE,
+                        'tipo_novedad' => $tipoNombre,
                         'estado' => 'pendiente'
                     ]
-                ]);
-                Log::info("Notificación creada para novedad registrada", ['novedad_id' => $novedad->NOV_ID]);
-            } catch (\Exception $e) {
-                Log::warning("Error creando notificación de novedad registrada", [
+                ];
+
+                Log::info("Creando notificación con datos", $notifData);
+
+                $notificacion = NotificacionExtranet::crear($notifData);
+
+                Log::info("Notificación creada exitosamente", [
                     'novedad_id' => $novedad->NOV_ID,
-                    'error' => $e->getMessage()
+                    'notificacion_id' => $notificacion->id,
+                    'empleado_id' => $request->EMP_ID
+                ]);
+            } catch (\Exception $e) {
+                Log::error("Error creando notificación de novedad registrada", [
+                    'novedad_id' => $novedad->NOV_ID,
+                    'empleado_id' => $request->EMP_ID,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
                 ]);
             }
 
@@ -423,23 +447,32 @@ class NovedadesController extends Controller
         // Crear notificación si se reenvía una novedad rechazada
         if ($cambiarEstado) {
             try {
-                NotificacionExtranet::crear([
+                // Obtener el nombre del tipo de novedad
+                $tipoNombre = $novedad->tipoNovedad ? $novedad->tipoNovedad->TIN_NOMBRE : 'Novedad';
+
+                $notifData = [
                     'empleado_id' => $novedad->EMP_ID,
                     'tipo' => 'sistema',
                     'titulo' => 'Novedad Reenviada',
-                    'mensaje' => 'Tu novedad "' . $novedad->tipoNovedad->TIN_NOMBRE . '" ha sido actualizada y reenviada para aprobación.',
+                    'mensaje' => 'Tu novedad "' . $tipoNombre . '" ha sido actualizada y reenviada para aprobación.',
                     'datos_adicionales' => [
                         'novedad_id' => $novedad->NOV_ID,
-                        'tipo_novedad' => $novedad->tipoNovedad->TIN_NOMBRE,
+                        'tipo_novedad' => $tipoNombre,
                         'estado' => 'reenviada',
                         'fecha_reenvio' => now()->format('d/m/Y H:i')
                     ]
-                ]);
-                Log::info("Notificación creada para novedad reenviada", ['novedad_id' => $novedad->NOV_ID]);
-            } catch (\Exception $e) {
-                Log::warning("Error creando notificación de novedad reenviada", [
+                ];
+
+                $notificacion = NotificacionExtranet::crear($notifData);
+                Log::info("Notificación creada para novedad reenviada", [
                     'novedad_id' => $novedad->NOV_ID,
-                    'error' => $e->getMessage()
+                    'notificacion_id' => $notificacion->id
+                ]);
+            } catch (\Exception $e) {
+                Log::error("Error creando notificación de novedad reenviada", [
+                    'novedad_id' => $novedad->NOV_ID,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
                 ]);
             }
         }
@@ -485,24 +518,33 @@ class NovedadesController extends Controller
 
         // Crear notificación para el empleado
         try {
-            NotificacionExtranet::crear([
+            // Obtener el nombre del tipo de novedad
+            $tipoNombre = $novedad->tipoNovedad ? $novedad->tipoNovedad->TIN_NOMBRE : 'Novedad';
+
+            $notifData = [
                 'empleado_id' => $novedad->EMP_ID,
                 'tipo' => 'sistema',
                 'titulo' => 'Novedad Aprobada',
-                'mensaje' => 'Tu novedad "' . $novedad->tipoNovedad->TIN_NOMBRE . '" ha sido aprobada exitosamente.',
+                'mensaje' => 'Tu novedad "' . $tipoNombre . '" ha sido aprobada exitosamente.',
                 'datos_adicionales' => [
                     'novedad_id' => $novedad->NOV_ID,
-                    'tipo_novedad' => $novedad->tipoNovedad->TIN_NOMBRE,
+                    'tipo_novedad' => $tipoNombre,
                     'estado' => 'aprobada',
                     'aprobado_por' => Auth::user()->name,
                     'fecha_aprobacion' => now()->format('d/m/Y H:i')
                 ]
-            ]);
-            Log::info("Notificación creada para novedad aprobada", ['novedad_id' => $novedad->NOV_ID]);
-        } catch (\Exception $e) {
-            Log::warning("Error creando notificación de novedad aprobada", [
+            ];
+
+            $notificacion = NotificacionExtranet::crear($notifData);
+            Log::info("Notificación creada para novedad aprobada", [
                 'novedad_id' => $novedad->NOV_ID,
-                'error' => $e->getMessage()
+                'notificacion_id' => $notificacion->id
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error creando notificación de novedad aprobada", [
+                'novedad_id' => $novedad->NOV_ID,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
 
@@ -526,25 +568,34 @@ class NovedadesController extends Controller
 
         // Crear notificación para el empleado
         try {
-            NotificacionExtranet::crear([
+            // Obtener el nombre del tipo de novedad
+            $tipoNombre = $novedad->tipoNovedad ? $novedad->tipoNovedad->TIN_NOMBRE : 'Novedad';
+
+            $notifData = [
                 'empleado_id' => $novedad->EMP_ID,
                 'tipo' => 'sistema',
                 'titulo' => 'Novedad Rechazada',
-                'mensaje' => 'Tu novedad "' . $novedad->tipoNovedad->TIN_NOMBRE . '" ha sido rechazada. Puedes editarla y reenviarla para nueva evaluación.',
+                'mensaje' => 'Tu novedad "' . $tipoNombre . '" ha sido rechazada. Puedes editarla y reenviarla para nueva evaluación.',
                 'datos_adicionales' => [
                     'novedad_id' => $novedad->NOV_ID,
-                    'tipo_novedad' => $novedad->tipoNovedad->TIN_NOMBRE,
+                    'tipo_novedad' => $tipoNombre,
                     'estado' => 'rechazada',
                     'observaciones' => $request->observaciones,
                     'rechazado_por' => Auth::user()->name,
                     'fecha_rechazo' => now()->format('d/m/Y H:i')
                 ]
-            ]);
-            Log::info("Notificación creada para novedad rechazada", ['novedad_id' => $novedad->NOV_ID]);
-        } catch (\Exception $e) {
-            Log::warning("Error creando notificación de novedad rechazada", [
+            ];
+
+            $notificacion = NotificacionExtranet::crear($notifData);
+            Log::info("Notificación creada para novedad rechazada", [
                 'novedad_id' => $novedad->NOV_ID,
-                'error' => $e->getMessage()
+                'notificacion_id' => $notificacion->id
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error creando notificación de novedad rechazada", [
+                'novedad_id' => $novedad->NOV_ID,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
 
