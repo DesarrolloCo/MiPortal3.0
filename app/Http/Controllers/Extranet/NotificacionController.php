@@ -111,7 +111,18 @@ class NotificacionController extends Controller
         $notificaciones = NotificacionExtranet::where('empleado_id', $empleado->EMP_ID)
             ->orderBy('created_at', 'DESC')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($notif) {
+                return [
+                    'id' => $notif->id,
+                    'titulo' => $notif->titulo,
+                    'mensaje' => $notif->mensaje,
+                    'tipo' => $notif->tipo,
+                    'leida' => $notif->leida,
+                    'created_at' => $notif->created_at,
+                    'datos_adicionales' => $notif->datos_adicionales,
+                ];
+            });
 
         return response()->json(['notificaciones' => $notificaciones]);
     }

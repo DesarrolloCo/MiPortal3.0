@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
+use App\Models\NovedadLog;
 use Illuminate\Support\Collection;
 
 class novedade extends Model
@@ -131,7 +133,8 @@ class novedade extends Model
         }
 
         if (is_string($value)) {
-            return json_decode($value, true) ?: [];
+            $decoded = json_decode($value, true);
+            return is_array($decoded) ? $decoded : [];
         }
 
         return [];
@@ -141,9 +144,18 @@ class novedade extends Model
     {
         $archivos = $this->archivos_lista;
 
+        // Generate unique filename
+        $extension = pathinfo($nombreOriginal, PATHINFO_EXTENSION) ?: 'bin';
+        $filename = time() . '_' . uniqid() . '.' . $extension;
+        $path = 'novedad-files/' . $filename;
+
+        // Store file content to disk
+        Storage::disk('local')->put($path, $archivo);
+
         $archivoData = [
             'nombre_original' => $nombreOriginal,
-            'contenido_binario' => base64_encode($archivo),
+            'filename' => $filename,
+            'path' => $path,
             'size' => strlen($archivo),
             'tipo' => mime_content_type('data://application/octet-stream;base64,' . base64_encode($archivo)) ?: 'application/octet-stream',
             'fecha_subida' => now()->toDateTimeString(),
@@ -159,12 +171,28 @@ class novedade extends Model
     {
         $archivos = $this->archivos_lista;
 
-        if (isset($archivos[$indice]) && isset($archivos[$indice]['contenido_binario'])) {
-            return [
-                'contenido' => base64_decode($archivos[$indice]['contenido_binario']),
-                'nombre_original' => $archivos[$indice]['nombre_original'],
-                'tipo' => $archivos[$indice]['tipo'] ?? 'application/octet-stream',
-            ];
+        if (isset($archivos[$indice])) {
+            $archivo = $archivos[$indice];
+
+            // Check if we have a file path (new format) or binary content (old format)
+            if (isset($archivo['path'])) {
+                // New format: read from disk
+                $filePath = storage_path('app/' . $archivo['path']);
+                if (file_exists($filePath)) {
+                    return [
+                        'contenido' => file_get_contents($filePath),
+                        'nombre_original' => $archivo['nombre_original'],
+                        'tipo' => $archivo['tipo'] ?? 'application/octet-stream',
+                    ];
+                }
+            } elseif (isset($archivo['contenido_binario'])) {
+                // Old format: decode base64 (for backward compatibility)
+                return [
+                    'contenido' => base64_decode($archivo['contenido_binario']),
+                    'nombre_original' => $archivo['nombre_original'],
+                    'tipo' => $archivo['tipo'] ?? 'application/octet-stream',
+                ];
+            }
         }
 
         return null;
@@ -175,6 +203,16 @@ class novedade extends Model
         $archivos = $this->archivos_lista;
 
         if (isset($archivos[$indice])) {
+            $archivo = $archivos[$indice];
+
+            // Delete file from disk if it exists
+            if (isset($archivo['path'])) {
+                $filePath = storage_path('app/' . $archivo['path']);
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                }
+            }
+
             unset($archivos[$indice]);
             $this->attributes['NOV_ARCHIVOS'] = json_encode(array_values($archivos));
         }
@@ -289,5 +327,13 @@ class novedade extends Model
         }
 
         return Carbon::parse($valor);
+    }
+
+    /**
+     * Relationship with logs
+     */
+    public function logs(): HasMany
+    {
+        return $this->hasMany(NovedadLog::class, 'nov_id', 'NOV_ID');
     }
 }

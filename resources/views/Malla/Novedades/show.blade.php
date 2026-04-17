@@ -307,20 +307,24 @@
             </div>
             <div class="card-body">
                 <div class="status-timeline">
-                    <!-- Registro -->
-                    <div class="status-step completed">
-                        <div class="step-indicator">
-                            <i class="mdi mdi-plus"></i>
+                    @foreach($novedad->logs->sortBy('created_at') as $log)
+                        <div class="status-step completed">
+                            <div class="step-indicator">
+                                <i class="mdi {{ $log->action_icon }}"></i>
+                            </div>
+                            <div class="step-content">
+                                <h6>{{ $log->action_label }}</h6>
+                                <p>{{ $log->user->name ?? 'N/A' }}</p>
+                                <small>{{ $log->created_at->format('d/m/Y H:i') }}</small>
+                                @if($log->description)
+                                    <div class="mt-2 text-muted small">{{ $log->description }}</div>
+                                @endif
+                            </div>
                         </div>
-                        <div class="step-content">
-                            <h6>Registrada</h6>
-                            <p>{{ $novedad->usuario->name ?? 'N/A' }}</p>
-                            <small>{{ $novedad->created_at->format('d/m/Y H:i') }}</small>
-                        </div>
-                    </div>
+                    @endforeach
 
-                    <!-- Estado Actual -->
-                    @if($novedad->NOV_ESTADO_APROBACION === 'pendiente')
+                    <!-- Estado Actual si no hay log correspondiente -->
+                    @if($novedad->NOV_ESTADO_APROBACION === 'pendiente' && !$novedad->logs->where('action', 'approved')->count() && !$novedad->logs->where('action', 'rejected')->count())
                         <div class="status-step current">
                             <div class="step-indicator">
                                 <i class="mdi mdi-clock-outline"></i>
@@ -329,28 +333,6 @@
                                 <h6>En Revisión</h6>
                                 <p>Esperando aprobación</p>
                                 <span class="badge badge-warning">Pendiente</span>
-                            </div>
-                        </div>
-                    @elseif($novedad->NOV_ESTADO_APROBACION === 'aprobada')
-                        <div class="status-step completed">
-                            <div class="step-indicator">
-                                <i class="mdi mdi-check-circle"></i>
-                            </div>
-                            <div class="step-content">
-                                <h6>Aprobada</h6>
-                                <p>{{ $novedad->aprobadoPor->name ?? 'N/A' }}</p>
-                                <small>{{ $novedad->NOV_FECHA_APROBACION ? $novedad->NOV_FECHA_APROBACION->format('d/m/Y H:i') : 'N/A' }}</small>
-                            </div>
-                        </div>
-                    @else
-                        <div class="status-step completed">
-                            <div class="step-indicator">
-                                <i class="mdi mdi-close-circle"></i>
-                            </div>
-                            <div class="step-content">
-                                <h6>Rechazada</h6>
-                                <p>{{ $novedad->aprobadoPor->name ?? 'N/A' }}</p>
-                                <small>{{ $novedad->NOV_FECHA_APROBACION ? $novedad->NOV_FECHA_APROBACION->format('d/m/Y H:i') : 'N/A' }}</small>
                             </div>
                         </div>
                     @endif

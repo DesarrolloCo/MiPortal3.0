@@ -40,8 +40,8 @@ if ($empleado) {
                 <div class="message-center notifications" style="max-height: 400px; overflow-y: auto;">
                     @forelse($notificaciones as $notificacion)
                     <!-- Notificación -->
-                    <a href="{{ $notificacion->url ?? route('extranet.notificaciones.index') }}"
-                       class="message-item d-flex align-items-center border-bottom px-3 py-2 {{ !$notificacion->leida ? 'bg-light' : '' }}">
+                    <a href="{{ $notificacion->datos_adicionales['action_url'] ?? $notificacion->url ?? route('extranet.notificaciones.index') }}"
+                        class="message-item d-flex align-items-center border-bottom px-3 py-2 {{ !$notificacion->leida ? 'bg-light' : '' }}">
                         <div class="btn btn-{{ $notificacion->tipo == 'comunicado' ? 'primary' : ($notificacion->tipo == 'evento' ? 'warning' : 'info') }} btn-circle">
                             <i class="mdi mdi-{{ $notificacion->icono ?? 'bell' }}"></i>
                         </div>

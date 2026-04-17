@@ -17,6 +17,7 @@ use App\Models\tipos_novedade;
 use App\Models\empleado;
 use App\Models\malla;
 use App\Models\NovedadHorario;
+use App\Models\User;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -173,10 +174,19 @@ class NovedadesController extends Controller
 
         $archivos = [];
         if ($request->hasFile('archivos')) {
-            foreach ($request->file('archivos') as $archivo) {
+            foreach ($request->file('archivos') as $index => $archivo) {
+                // Generate unique filename
+                $extension = $archivo->getClientOriginalExtension();
+                $filename = time() . '_' . $index . '_' . uniqid() . '.' . $extension;
+                $path = 'novedad-files/' . $filename;
+
+                // Store file on disk
+                $archivo->storeAs('novedad-files', $filename, 'local');
+
                 $archivos[] = [
                     'nombre_original' => $archivo->getClientOriginalName(),
-                    'contenido_binario' => base64_encode(file_get_contents($archivo->getPathname())),
+                    'filename' => $filename,
+                    'path' => $path,
                     'size' => $archivo->getSize(),
                     'tipo' => $archivo->getMimeType(),
                     'fecha_subida' => Carbon::now('America/Bogota')->toDateTimeString()
@@ -212,6 +222,13 @@ class NovedadesController extends Controller
         try {
             $novedad = novedade::create($novedadData);
 
+            // Log the 'arrived' action
+            $novedad->logs()->create([
+                'action' => 'arrived',
+                'user_id' => Auth::id(),
+                'description' => 'Novedad registrada por ' . Auth::user()->name
+            ]);
+
             Log::info("Novedad creada", [
                 'novedad_id' => $novedad->NOV_ID,
                 'empleado_id' => $request->EMP_ID,
@@ -220,50 +237,7 @@ class NovedadesController extends Controller
                 'hora_fin_manual' => $request->hora_fin_manual
             ]);
 
-            // Crear notificación para el empleado
-            try {
-                // Obtener el nombre del tipo de novedad
-                $tipoNovedad = \App\Models\tipos_novedade::find($request->TIN_ID);
-                $tipoNombre = $tipoNovedad ? $tipoNovedad->TIN_NOMBRE : 'Novedad';
 
-                // Verificar que el empleado tenga ID válido
-                if (!$request->EMP_ID) {
-                    Log::warning("Intento de crear notificación sin EMP_ID válido", [
-                        'request_data' => $request->all(),
-                        'novedad_id' => $novedad->NOV_ID
-                    ]);
-                    throw new \Exception("EMP_ID no válido");
-                }
-
-                $notifData = [
-                    'empleado_id' => $request->EMP_ID,
-                    'tipo' => 'sistema',
-                    'titulo' => 'Novedad Registrada',
-                    'mensaje' => 'Tu novedad "' . $tipoNombre . '" ha sido registrada exitosamente y está pendiente de aprobación.',
-                    'datos_adicionales' => [
-                        'novedad_id' => $novedad->NOV_ID,
-                        'tipo_novedad' => $tipoNombre,
-                        'estado' => 'pendiente'
-                    ]
-                ];
-
-                Log::info("Creando notificación con datos", $notifData);
-
-                $notificacion = NotificacionExtranet::crear($notifData);
-
-                Log::info("Notificación creada exitosamente", [
-                    'novedad_id' => $novedad->NOV_ID,
-                    'notificacion_id' => $notificacion->id,
-                    'empleado_id' => $request->EMP_ID
-                ]);
-            } catch (\Exception $e) {
-                Log::error("Error creando notificación de novedad registrada", [
-                    'novedad_id' => $novedad->NOV_ID,
-                    'empleado_id' => $request->EMP_ID,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-            }
 
             // Gestionar horarios seleccionados o crear malla bloqueada manualmente
             if ($horariosSeleccionados->isNotEmpty()) {
@@ -373,7 +347,7 @@ class NovedadesController extends Controller
      */
     public function show($id)
     {
-        $novedad = novedade::with(['tipoNovedad', 'empleado', 'usuario', 'aprobadoPor', 'horarios'])->findOrFail($id);
+        $novedad = novedade::with(['tipoNovedad', 'empleado', 'usuario', 'aprobadoPor', 'horarios', 'logs.user'])->findOrFail($id);
         return view('Malla.Novedades.show', compact('novedad'));
     }
 
@@ -408,6 +382,8 @@ class NovedadesController extends Controller
             'EMP_ID' => 'required|exists:empleados,EMP_ID',
             'NOV_DESCRIPCION' => 'required|string',
             'NOV_FECHA' => 'nullable|date',
+            'horarios' => 'nullable|array',
+            'horarios.*' => 'integer|exists:mallas,MAL_ID',
             'archivos.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120'
         ]);
 
@@ -415,13 +391,22 @@ class NovedadesController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $archivos = $novedad->archivos_lista;
+        $archivos = $novedad->archivos_lista ?? [];
 
         if ($request->hasFile('archivos')) {
-            foreach ($request->file('archivos') as $archivo) {
+            foreach ($request->file('archivos') as $index => $archivo) {
+                // Generate unique filename
+                $extension = $archivo->getClientOriginalExtension();
+                $filename = time() . '_' . $index . '_' . uniqid() . '.' . $extension;
+                $path = 'novedad-files/' . $filename;
+
+                // Store file on disk
+                $archivo->storeAs('novedad-files', $filename, 'local');
+
                 $archivos[] = [
                     'nombre_original' => $archivo->getClientOriginalName(),
-                    'contenido_binario' => base64_encode(file_get_contents($archivo->getPathname())),
+                    'filename' => $filename,
+                    'path' => $path,
                     'size' => $archivo->getSize(),
                     'tipo' => $archivo->getMimeType(),
                     'fecha_subida' => now()->toDateTimeString()
@@ -443,6 +428,43 @@ class NovedadesController extends Controller
             'NOV_APROBADO_POR' => $cambiarEstado ? null : $novedad->NOV_APROBADO_POR,
             'NOV_FECHA_APROBACION' => $cambiarEstado ? null : $novedad->NOV_FECHA_APROBACION
         ]);
+
+        // Sync associated schedules if provided
+        if ($request->has('horarios')) {
+            $horariosSeleccionados = collect($request->input('horarios', []))
+                ->filter()
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->toArray();
+
+            // Validate that selected schedules belong to the selected employee
+            if (!empty($horariosSeleccionados)) {
+                $invalidHorarios = malla::whereIn('MAL_ID', $horariosSeleccionados)
+                    ->where('EMP_ID', '!=', $request->EMP_ID)
+                    ->pluck('MAL_ID')
+                    ->toArray();
+
+                if (!empty($invalidHorarios)) {
+                    return back()->withErrors(['horarios' => 'Algunos horarios seleccionados no pertenecen al empleado seleccionado.'])->withInput();
+                }
+            }
+
+            $novedad->horarios()->sync($horariosSeleccionados);
+
+            Log::info("Horarios actualizados para novedad rechazada", [
+                'novedad_id' => $novedad->NOV_ID,
+                'horarios' => $horariosSeleccionados
+            ]);
+        }
+
+        // Log the 'forwarded' action if it was rejected and now pending
+        if ($cambiarEstado) {
+            $novedad->logs()->create([
+                'action' => 'forwarded',
+                'user_id' => Auth::id(),
+                'description' => 'Novedad reenviada para revisión por ' . Auth::user()->name
+            ]);
+        }
 
         // Crear notificación si se reenvía una novedad rechazada
         if ($cambiarEstado) {
@@ -468,6 +490,52 @@ class NovedadesController extends Controller
                     'novedad_id' => $novedad->NOV_ID,
                     'notificacion_id' => $notificacion->id
                 ]);
+
+                // Notificar a supervisores sobre la novedad reenviada
+                $supervisores = User::whereHas('roles.permissions', function($q) {
+                    $q->where('name', 'ver-novedades');
+                })->orWhereHas('permissions', function($q) {
+                    $q->where('name', 'ver-novedades');
+                })->get();
+
+                if ($supervisores->isNotEmpty()) {
+                    $empleado = $novedad->empleado;
+                    $empleadoNombre = $empleado ? $empleado->EMP_NOMBRES . ' ' . $empleado->EMP_APELLIDOS : 'Empleado';
+
+                    foreach ($supervisores as $supervisor) {
+                        if ($supervisor->empleados) {
+                            $notifDataSupervisor = [
+                                'empleado_id' => $supervisor->empleados->EMP_ID,
+                                'tipo' => 'sistema',
+                                'titulo' => 'Novedad Reenviada para Aprobación',
+                                'mensaje' => 'La novedad de ' . $empleadoNombre . ' (' . $tipoNombre . ') ha sido actualizada y reenviada para aprobación.',
+                                'datos_adicionales' => [
+                                    'novedad_id' => $novedad->NOV_ID,
+                                    'tipo_novedad' => $tipoNombre,
+                                    'empleado_id' => $novedad->EMP_ID,
+                                    'empleado_nombre' => $empleadoNombre,
+                                    'estado' => 'reenviada',
+                                    'fecha_reenvio' => now()->format('d/m/Y H:i'),
+                                    'action_url' => route('Novedades.index')
+                                ]
+                            ];
+
+                            try {
+                                NotificacionExtranet::crear($notifDataSupervisor);
+                                Log::info("Notificación creada para supervisor sobre novedad reenviada", [
+                                    'novedad_id' => $novedad->NOV_ID,
+                                    'supervisor_id' => $supervisor->id
+                                ]);
+                            } catch (\Exception $e) {
+                                Log::error("Error notificando supervisor sobre novedad reenviada", [
+                                    'novedad_id' => $novedad->NOV_ID,
+                                    'supervisor_id' => $supervisor->id,
+                                    'error' => $e->getMessage()
+                                ]);
+                            }
+                        }
+                    }
+                }
             } catch (\Exception $e) {
                 Log::error("Error creando notificación de novedad reenviada", [
                     'novedad_id' => $novedad->NOV_ID,
@@ -516,6 +584,13 @@ class NovedadesController extends Controller
             'NOV_FECHA_APROBACION' => now()
         ]);
 
+        // Log the 'approved' action
+        $novedad->logs()->create([
+            'action' => 'approved',
+            'user_id' => Auth::id(),
+            'description' => 'Novedad aprobada por ' . Auth::user()->name
+        ]);
+
         // Crear notificación para el empleado
         try {
             // Obtener el nombre del tipo de novedad
@@ -548,6 +623,46 @@ class NovedadesController extends Controller
             ]);
         }
 
+        // Crear notificación para el usuario que creó la novedad (si es diferente al aprobador)
+        if ($novedad->USER_ID && $novedad->USER_ID !== Auth::id()) {
+            try {
+                $creador = \App\Models\User::find($novedad->USER_ID);
+                if ($creador && $creador->empleados) {
+                    $empleado = $novedad->empleado;
+                    $empleadoNombre = $empleado ? $empleado->EMP_NOMBRES . ' ' . $empleado->EMP_APELLIDOS : 'Empleado';
+
+                    $notifDataCreador = [
+                        'empleado_id' => $creador->empleados->EMP_ID,
+                        'tipo' => 'sistema',
+                        'titulo' => 'Novedad Aprobada',
+                        'mensaje' => 'La novedad que registraste para ' . $empleadoNombre . ' (' . $tipoNombre . ') ha sido aprobada.',
+                        'datos_adicionales' => [
+                            'novedad_id' => $novedad->NOV_ID,
+                            'tipo_novedad' => $tipoNombre,
+                            'empleado_id' => $novedad->EMP_ID,
+                            'empleado_nombre' => $empleadoNombre,
+                            'estado' => 'aprobada',
+                            'aprobado_por' => Auth::user()->name,
+                            'fecha_aprobacion' => now()->format('d/m/Y H:i')
+                        ]
+                    ];
+
+                    $notificacionCreador = NotificacionExtranet::crear($notifDataCreador);
+                    Log::info("Notificación creada para creador de novedad aprobada", [
+                        'novedad_id' => $novedad->NOV_ID,
+                        'creador_id' => $creador->id,
+                        'notificacion_id' => $notificacionCreador->id
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error("Error creando notificación para creador de novedad aprobada", [
+                    'novedad_id' => $novedad->NOV_ID,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+        }
+
         return back()->with('success', 'Novedad aprobada exitosamente');
     }
 
@@ -564,6 +679,13 @@ class NovedadesController extends Controller
             'NOV_OBSERVACIONES' => $request->observaciones,
             'NOV_APROBADO_POR' => Auth::id(),
             'NOV_FECHA_APROBACION' => now()
+        ]);
+
+        // Log the 'rejected' action
+        $novedad->logs()->create([
+            'action' => 'rejected',
+            'user_id' => Auth::id(),
+            'description' => 'Novedad rechazada por ' . Auth::user()->name . ': ' . $request->observaciones
         ]);
 
         // Crear notificación para el empleado
@@ -599,6 +721,49 @@ class NovedadesController extends Controller
             ]);
         }
 
+        // Crear notificación para el usuario que creó la novedad (si es diferente al rechazar)
+        if ($novedad->USER_ID && $novedad->USER_ID !== Auth::id()) {
+            try {
+                $creador = \App\Models\User::find($novedad->USER_ID);
+                if ($creador && $creador->empleados) {
+                    $empleado = $novedad->empleado;
+                    $empleadoNombre = $empleado ? $empleado->EMP_NOMBRES . ' ' . $empleado->EMP_APELLIDOS : 'Empleado';
+
+                    $notifDataCreador = [
+                        'empleado_id' => $creador->empleados->EMP_ID,
+                        'tipo' => 'sistema',
+                        'titulo' => 'Novedad Rechazada - Requiere Edición',
+                        'mensaje' => 'La novedad que registraste para ' . $empleadoNombre . ' (' . $tipoNombre . ') ha sido rechazada. Haz clic para editarla.',
+                        'datos_adicionales' => [
+                            'novedad_id' => $novedad->NOV_ID,
+                            'tipo_novedad' => $tipoNombre,
+                            'empleado_id' => $novedad->EMP_ID,
+                            'empleado_nombre' => $empleadoNombre,
+                            'estado' => 'rechazada',
+                            'observaciones' => $request->observaciones,
+                            'rechazado_por' => Auth::user()->name,
+                            'fecha_rechazo' => now()->format('d/m/Y H:i'),
+                            'action_url' => route('Novedades.editarRechazada', $novedad->NOV_ID),
+                            'action_type' => 'editar_novedad_rechazada'
+                        ]
+                    ];
+
+                    $notificacionCreador = NotificacionExtranet::crear($notifDataCreador);
+                    Log::info("Notificación creada para creador de novedad rechazada", [
+                        'novedad_id' => $novedad->NOV_ID,
+                        'creador_id' => $creador->id,
+                        'notificacion_id' => $notificacionCreador->id
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error("Error creando notificación para creador de novedad rechazada", [
+                    'novedad_id' => $novedad->NOV_ID,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+        }
+
         return back()->with('success', 'Novedad rechazada exitosamente');
     }
 
@@ -611,13 +776,85 @@ class NovedadesController extends Controller
             return back()->with('error', 'No se seleccionaron novedades');
         }
 
-        $count = novedade::whereIn('NOV_ID', $ids)
+        $novedadesAprobadas = novedade::whereIn('NOV_ID', $ids)
             ->where('NOV_ESTADO_APROBACION', 'pendiente')
-            ->update([
-                'NOV_ESTADO_APROBACION' => 'aprobada',
-                'NOV_APROBADO_POR' => Auth::id(),
-                'NOV_FECHA_APROBACION' => now()
-            ]);
+            ->with(['tipoNovedad', 'empleado', 'usuario'])
+            ->get();
+
+        $count = $novedadesAprobadas->count();
+
+        if ($count > 0) {
+            novedade::whereIn('NOV_ID', $ids)
+                ->where('NOV_ESTADO_APROBACION', 'pendiente')
+                ->update([
+                    'NOV_ESTADO_APROBACION' => 'aprobada',
+                    'NOV_APROBADO_POR' => Auth::id(),
+                    'NOV_FECHA_APROBACION' => now()
+                ]);
+
+            // Crear notificaciones para empleados y creadores
+            foreach ($novedadesAprobadas as $novedad) {
+                // Notificación para el empleado
+                try {
+                    $tipoNombre = $novedad->tipoNovedad ? $novedad->tipoNovedad->TIN_NOMBRE : 'Novedad';
+
+                    $notifData = [
+                        'empleado_id' => $novedad->EMP_ID,
+                        'tipo' => 'sistema',
+                        'titulo' => 'Novedad Aprobada',
+                        'mensaje' => 'Tu novedad "' . $tipoNombre . '" ha sido aprobada exitosamente.',
+                        'datos_adicionales' => [
+                            'novedad_id' => $novedad->NOV_ID,
+                            'tipo_novedad' => $tipoNombre,
+                            'estado' => 'aprobada',
+                            'aprobado_por' => Auth::user()->name,
+                            'fecha_aprobacion' => now()->format('d/m/Y H:i')
+                        ]
+                    ];
+
+                    NotificacionExtranet::crear($notifData);
+                } catch (\Exception $e) {
+                    Log::error("Error creando notificación masiva de aprobación para empleado", [
+                        'novedad_id' => $novedad->NOV_ID,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
+                // Notificación para el creador si es diferente
+                if ($novedad->USER_ID && $novedad->USER_ID !== Auth::id()) {
+                    try {
+                        $creador = \App\Models\User::find($novedad->USER_ID);
+                        if ($creador && $creador->empleados) {
+                            $empleado = $novedad->empleado;
+                            $empleadoNombre = $empleado ? $empleado->EMP_NOMBRES . ' ' . $empleado->EMP_APELLIDOS : 'Empleado';
+
+                            $notifDataCreador = [
+                                'empleado_id' => $creador->empleados->EMP_ID,
+                                'tipo' => 'sistema',
+                                'titulo' => 'Novedad Aprobada',
+                                'mensaje' => 'La novedad que registraste para ' . $empleadoNombre . ' (' . $tipoNombre . ') ha sido aprobada.',
+                                'datos_adicionales' => [
+                                    'novedad_id' => $novedad->NOV_ID,
+                                    'tipo_novedad' => $tipoNombre,
+                                    'empleado_id' => $novedad->EMP_ID,
+                                    'empleado_nombre' => $empleadoNombre,
+                                    'estado' => 'aprobada',
+                                    'aprobado_por' => Auth::user()->name,
+                                    'fecha_aprobacion' => now()->format('d/m/Y H:i')
+                                ]
+                            ];
+
+                            NotificacionExtranet::crear($notifDataCreador);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error("Error creando notificación masiva de aprobación para creador", [
+                            'novedad_id' => $novedad->NOV_ID,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+        }
 
         return back()->with('success', "Se aprobaron $count novedades exitosamente");
     }
@@ -635,14 +872,90 @@ class NovedadesController extends Controller
             return back()->with('error', 'No se seleccionaron novedades');
         }
 
-        $count = novedade::whereIn('NOV_ID', $ids)
+        $novedadesRechazadas = novedade::whereIn('NOV_ID', $ids)
             ->where('NOV_ESTADO_APROBACION', 'pendiente')
-            ->update([
-                'NOV_ESTADO_APROBACION' => 'rechazada',
-                'NOV_OBSERVACIONES' => $request->observaciones,
-                'NOV_APROBADO_POR' => Auth::id(),
-                'NOV_FECHA_APROBACION' => now()
-            ]);
+            ->with(['tipoNovedad', 'empleado', 'usuario'])
+            ->get();
+
+        $count = $novedadesRechazadas->count();
+
+        if ($count > 0) {
+            novedade::whereIn('NOV_ID', $ids)
+                ->where('NOV_ESTADO_APROBACION', 'pendiente')
+                ->update([
+                    'NOV_ESTADO_APROBACION' => 'rechazada',
+                    'NOV_OBSERVACIONES' => $request->observaciones,
+                    'NOV_APROBADO_POR' => Auth::id(),
+                    'NOV_FECHA_APROBACION' => now()
+                ]);
+
+            // Crear notificaciones para empleados y creadores
+            foreach ($novedadesRechazadas as $novedad) {
+                // Notificación para el empleado
+                try {
+                    $tipoNombre = $novedad->tipoNovedad ? $novedad->tipoNovedad->TIN_NOMBRE : 'Novedad';
+
+                    $notifData = [
+                        'empleado_id' => $novedad->EMP_ID,
+                        'tipo' => 'sistema',
+                        'titulo' => 'Novedad Rechazada',
+                        'mensaje' => 'Tu novedad "' . $tipoNombre . '" ha sido rechazada. Puedes editarla y reenviarla para nueva evaluación.',
+                        'datos_adicionales' => [
+                            'novedad_id' => $novedad->NOV_ID,
+                            'tipo_novedad' => $tipoNombre,
+                            'estado' => 'rechazada',
+                            'observaciones' => $request->observaciones,
+                            'rechazado_por' => Auth::user()->name,
+                            'fecha_rechazo' => now()->format('d/m/Y H:i')
+                        ]
+                    ];
+
+                    NotificacionExtranet::crear($notifData);
+                } catch (\Exception $e) {
+                    Log::error("Error creando notificación masiva de rechazo para empleado", [
+                        'novedad_id' => $novedad->NOV_ID,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
+                // Notificación para el creador si es diferente
+                if ($novedad->USER_ID && $novedad->USER_ID !== Auth::id()) {
+                    try {
+                        $creador = \App\Models\User::find($novedad->USER_ID);
+                        if ($creador && $creador->empleados) {
+                            $empleado = $novedad->empleado;
+                            $empleadoNombre = $empleado ? $empleado->EMP_NOMBRES . ' ' . $empleado->EMP_APELLIDOS : 'Empleado';
+
+                            $notifDataCreador = [
+                                'empleado_id' => $creador->empleados->EMP_ID,
+                                'tipo' => 'sistema',
+                                'titulo' => 'Novedad Rechazada - Requiere Edición',
+                                'mensaje' => 'La novedad que registraste para ' . $empleadoNombre . ' (' . $tipoNombre . ') ha sido rechazada. Haz clic para editarla.',
+                                'datos_adicionales' => [
+                                    'novedad_id' => $novedad->NOV_ID,
+                                    'tipo_novedad' => $tipoNombre,
+                                    'empleado_id' => $novedad->EMP_ID,
+                                    'empleado_nombre' => $empleadoNombre,
+                                    'estado' => 'rechazada',
+                                    'observaciones' => $request->observaciones,
+                                    'rechazado_por' => Auth::user()->name,
+                                    'fecha_rechazo' => now()->format('d/m/Y H:i'),
+                                    'action_url' => route('Novedades.editarRechazada', $novedad->NOV_ID),
+                                    'action_type' => 'editar_novedad_rechazada'
+                                ]
+                            ];
+
+                            NotificacionExtranet::crear($notifDataCreador);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error("Error creando notificación masiva de rechazo para creador", [
+                            'novedad_id' => $novedad->NOV_ID,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+        }
 
         return back()->with('success', "Se rechazaron $count novedades exitosamente");
     }
@@ -1233,5 +1546,68 @@ class NovedadesController extends Controller
         return response($archivo['contenido'])
             ->header('Content-Type', $archivo['tipo'])
             ->header('Content-Disposition', 'inline; filename="' . $archivo['nombre_original'] . '"');
+    }
+
+    /**
+     * Obtener horarios disponibles para un empleado (para edición de novedad rechazada)
+     */
+    public function horariosDisponiblesEmpleado(Request $request, int $empleadoId)
+    {
+        $fechaInicio = $request->query('fecha_inicio', now()->startOfMonth()->toDateString());
+        $fechaFin = $request->query('fecha_fin', now()->endOfMonth()->toDateString());
+        $novedadId = $request->query('novedad_id');
+
+        // Obtener horarios del empleado en el rango de fechas
+        $query = malla::with(['campana'])
+            ->where('EMP_ID', $empleadoId)
+            ->where('MAL_ESTADO', 1) // Solo horarios activos
+            ->whereBetween('MAL_DIA', [$fechaInicio, $fechaFin])
+            ->orderBy('MAL_DIA')
+            ->orderBy('MAL_INICIO');
+
+        // Excluir horarios ya asociados a esta novedad si se proporciona el ID
+        if ($novedadId) {
+            $horariosAsociados = NovedadHorario::where('nov_id', $novedadId)->pluck('mal_id')->toArray();
+            $query->whereNotIn('MAL_ID', $horariosAsociados);
+        }
+
+        $horarios = $query->get();
+
+        return response()->json([
+            'horarios' => $horarios->map(function ($horario) {
+                return [
+                    'MAL_ID' => $horario->MAL_ID,
+                    'fecha' => \Carbon\Carbon::parse($horario->MAL_DIA)->format('d/m/Y'),
+                    'hora_inicio' => \Carbon\Carbon::parse($horario->MAL_INICIO)->format('H:i'),
+                    'hora_fin' => \Carbon\Carbon::parse($horario->MAL_FINAL)->format('H:i'),
+                    'campana' => $horario->campana->CAM_NOMBRE ?? 'N/A'
+                ];
+            })
+        ]);
+    }
+
+    /**
+     * Mostrar formulario para editar una novedad rechazada
+     */
+    public function editarRechazada($id)
+    {
+        $novedad = novedade::with(['tipoNovedad', 'empleado', 'usuario', 'horarios.campana'])->findOrFail($id);
+
+        // Verificar que la novedad esté rechazada
+        if ($novedad->NOV_ESTADO_APROBACION !== 'rechazada') {
+            return redirect()->route('Novedades.index')->with('error', 'Esta novedad no está rechazada o no puede ser editada.');
+        }
+
+        // Verificar que el usuario actual sea el creador de la novedad
+        if ($novedad->USER_ID !== Auth::id()) {
+            return redirect()->route('Novedades.index')->with('error', 'No tienes permisos para editar esta novedad.');
+        }
+
+        // Verificar que el usuario tenga permisos de sidebar_supervisor (esto se valida en el middleware o en la vista)
+
+        $tiposNovedades = tipos_novedade::activos()->get();
+        $empleados = empleado::where('EMP_ESTADO', 1)->orderBy('EMP_NOMBRES')->get();
+
+        return view('Malla.Novedades.editar-rechazada', compact('novedad', 'tiposNovedades', 'empleados'));
     }
 }

@@ -51,9 +51,9 @@
                         <!-- Notificaciones -->
                         @if(Auth::check() && Auth::user()->empleados)
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-muted waves-effect waves-dark" href="#" id="notificacionesDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle text-muted waves-effect waves-dark" href="#" id="notificacionesDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="position: relative;">
                                 <i class="mdi mdi-bell-outline" style="font-size: 20px;"></i>
-                                <span class="badge badge-danger badge-counter" id="notificaciones-count" style="display: none;">0</span>
+                                <span class="badge badge-danger " id="notificaciones-count">0</span>
                             </a>
                             <div class="dropdown-menu dropdown-menu-right animated flipInY" aria-labelledby="notificacionesDropdown" style="width: 350px; max-height: 400px; overflow-y: auto;">
                                 <div class="dropdown-header d-flex justify-content-between align-items-center">
@@ -67,10 +67,7 @@
                                 </div>
                                 <div class="dropdown-divider"></div>
                                 <div id="notificaciones-list" class="px-2">
-                                    <div class="text-center py-3">
-                                        <i class="mdi mdi-bell-off-outline text-muted" style="font-size: 24px;"></i>
-                                        <p class="text-muted mb-0 mt-1">No hay notificaciones</p>
-                                    </div>
+                                    <!-- Las notificaciones se cargarán dinámicamente -->
                                 </div>
                                 <div class="dropdown-divider"></div>
                                 <div class="px-2 pb-2">
@@ -173,8 +170,13 @@
                                 const iconClass = 'mdi mdi-bell';
                                 const colorClass = 'text-muted';
 
+                                // Determinar la URL de destino
+                                let targetUrl = '#';
+                                if (notif.datos_adicionales && notif.datos_adicionales.action_url) {
+                                    targetUrl = notif.datos_adicionales.action_url;
+                                }
                                 html += `
-                                    <a href="#" class="dropdown-item d-flex align-items-start py-2 ${!notif.leida ? 'bg-light' : ''}">
+                                    <a href="${targetUrl}" class="dropdown-item d-flex align-items-start py-2 ${!notif.leida ? 'bg-light' : ''}" ${targetUrl !== '#' ? 'data-notificacion-id="' + notif.id + '"' : ''}>
                                         <div class="mr-3">
                                             <i class="${iconClass} ${colorClass}" style="font-size: 18px;"></i>
                                         </div>
@@ -218,6 +220,24 @@
 
             // Actualizar contador cada 30 segundos
             setInterval(cargarNotificaciones, 30000);
+
+            // Marcar notificación como leída al hacer clic
+            $(document).on('click', 'a[data-notificacion-id]', function(e) {
+                const notificacionId = $(this).data('notificacion-id');
+                if (notificacionId) {
+                    $.ajax({
+                        url: '{{ route("extranet.notificaciones.marcar-leida", ":id") }}'.replace(':id', notificacionId),
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function() {
+                            // Recargar notificaciones después de marcar como leída
+                            cargarNotificaciones();
+                        }
+                    });
+                }
+            });
 
             // Cargar lista completa cuando se abre el dropdown
             $('#notificacionesDropdown').on('shown.bs.dropdown', function() {

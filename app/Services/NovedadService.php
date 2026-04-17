@@ -5,6 +5,12 @@ namespace App\Services;
 use App\Models\novedade;
 use App\Models\NovedadHorario;
 use App\Models\malla;
+use App\Models\Extranet\NotificacionExtranet;
+use App\Models\tipos_novedade;
+use App\Models\empleado;
+use App\Models\User;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class NovedadService
@@ -58,7 +64,93 @@ class NovedadService
             ]);
         }
 
+
+
+        // Enviar notificaciones
+        $this->enviarNotificacionesCreacion($novedad);
+
         return $novedad;
+    }
+
+    /**
+     * Enviar notificaciones cuando se crea una novedad
+     */
+    private function enviarNotificacionesCreacion(novedade $novedad): void
+    {
+        try {
+            // Notificación para el empleado
+            $tipoNovedad = tipos_novedade::find($novedad->TIN_ID);
+            $tipoNombre = $tipoNovedad ? $tipoNovedad->TIN_NOMBRE : 'Novedad';
+
+            $notifDataEmpleado = [
+                'empleado_id' => $novedad->EMP_ID,
+                'tipo' => 'sistema',
+                'titulo' => 'Novedad Registrada',
+                'mensaje' => 'Tu novedad "' . $tipoNombre . '" ha sido registrada exitosamente y está pendiente de aprobación.',
+                'datos_adicionales' => [
+                    'novedad_id' => $novedad->NOV_ID,
+                    'tipo_novedad' => $tipoNombre,
+                    'estado' => 'pendiente'
+                ]
+            ];
+
+            try {
+                $notificacionEmpleado = NotificacionExtranet::crear($notifDataEmpleado);
+                Log::info("Notificación creada para empleado en creación de novedad", [
+                    'novedad_id' => $novedad->NOV_ID,
+                    'notificacion_id' => $notificacionEmpleado->id,
+                    'empleado_id' => $novedad->EMP_ID
+                ]);
+            } catch (\Exception $e) {
+                Log::error("Error creando notificación para empleado", [
+                    'novedad_id' => $novedad->NOV_ID,
+                    'empleado_id' => $novedad->EMP_ID,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            // Notificación para supervisores con permiso 'ver-novedades'
+            $supervisores = User::permission('ver-novedades')->get();
+
+            if ($supervisores->isNotEmpty()) {
+                $empleado = empleado::find($novedad->EMP_ID);
+                $empleadoNombre = $empleado ? $empleado->EMP_NOMBRES . ' ' . $empleado->EMP_APELLIDOS : 'Empleado';
+
+                // Evitar notificaciones duplicadas
+                $notificadosEmpleadosIds = [$novedad->EMP_ID]; // El empleado ya recibió notificación
+
+                foreach ($supervisores as $supervisor) {
+                    // Solo notificar si el supervisor tiene un empleado asociado y no ha sido notificado ya
+                    if ($supervisor->empleados && !in_array($supervisor->empleados->EMP_ID, $notificadosEmpleadosIds)) {
+                        $notifDataSupervisor = [
+                            'empleado_id' => $supervisor->empleados->EMP_ID,
+                            'tipo' => 'sistema',
+                            'titulo' => 'Nueva Novedad Pendiente de Aprobación',
+                            'mensaje' => 'Se ha registrado una nueva novedad para ' . $empleadoNombre . ' (' . $tipoNombre . ') que requiere aprobación.',
+                            'datos_adicionales' => [
+                                'novedad_id' => $novedad->NOV_ID,
+                                'tipo_novedad' => $tipoNombre,
+                                'empleado_id' => $novedad->EMP_ID,
+                                'empleado_nombre' => $empleadoNombre,
+                                'estado' => 'pendiente',
+                                'fecha_registro' => now()->format('d/m/Y H:i'),
+                                'action_url' => route('Novedades.index') // URL para ir directamente a gestionar novedades
+                            ]
+                        ];
+
+                        NotificacionExtranet::crear($notifDataSupervisor);
+
+                        $notificadosEmpleadosIds[] = $supervisor->empleados->EMP_ID;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Error enviando notificaciones en creación de novedad", [
+                'novedad_id' => $novedad->NOV_ID,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 
     /**
@@ -91,11 +183,20 @@ class NovedadService
         $archivosGuardados = [];
 
         if ($archivos && is_array($archivos)) {
-            foreach ($archivos as $archivo) {
+            foreach ($archivos as $index => $archivo) {
                 if ($archivo->isValid()) {
+                    // Generate unique filename
+                    $extension = $archivo->getClientOriginalExtension();
+                    $filename = time() . '_' . $index . '_' . uniqid() . '.' . $extension;
+                    $path = 'novedad-files/' . $filename;
+
+                    // Store file on disk
+                    $archivo->storeAs('novedad-files', $filename, 'local');
+
                     $archivosGuardados[] = [
                         'nombre_original' => $archivo->getClientOriginalName(),
-                        'contenido_binario' => base64_encode(file_get_contents($archivo->getPathname())),
+                        'filename' => $filename,
+                        'path' => $path,
                         'size' => $archivo->getSize(),
                         'tipo' => $archivo->getMimeType(),
                         'fecha_subida' => Carbon::now('America/Bogota')->toDateTimeString()

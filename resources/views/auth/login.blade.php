@@ -1,8 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
-
-<!-- Mirrored from www.wrappixel.com/demos/admin-templates/monster-admin/main/pages-login.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 11 Feb 2019 11:36:58 GMT -->
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -11,10 +8,10 @@
     <meta name="description" content="">
     <meta name="author" content="">
     <!-- Favicon icon -->
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('../assets/images/favicon.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/images/favicon.png') }}">
     <title>MI</title>
     <!-- Bootstrap Core CSS -->
-    <link href="{{ asset('../assets/plugins/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/plugins/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="{{ asset('css/style.css') }}" rel="stylesheet">
     <!-- You can change the theme colors from here -->
@@ -82,7 +79,7 @@
                         </div>
                         <div class="col-xs-12">
                             <br>
-                            <p> Contacta © {{ date('Y') }} All Rights Reserved.</p>
+                            <p> Contacta © {{ date('Y') }} All Rights Reserved.asasa</p>
                         </div>
                     </div>
                     {{-- <div class="form-group mb-0">
@@ -141,7 +138,6 @@
 </body>
 
 
-<!-- Mirrored from www.wrappixel.com/demos/admin-templates/monster-admin/main/pages-login.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 11 Feb 2019 11:36:58 GMT -->
 </html>
 
 

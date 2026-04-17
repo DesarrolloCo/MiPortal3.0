@@ -184,6 +184,8 @@ Route::get('/Novedades/{novedad}/archivo/{indice}/descargar', [App\Http\Controll
 Route::get('/Novedades/{novedad}/archivo/{indice}/ver', [App\Http\Controllers\Malla\NovedadesController::class, 'verArchivo'])->name('Novedades.verArchivo');
 Route::delete('/Novedades/{novedad}/archivo/{indice}/eliminar', [App\Http\Controllers\Malla\NovedadesController::class, 'eliminarArchivo'])->name('Novedades.eliminarArchivo');
 Route::get('/Novedades/empleado/{empleado}/horarios', [App\Http\Controllers\Malla\NovedadesController::class, 'horariosEmpleado'])->name('Novedades.horariosEmpleado');
+Route::get('/Novedades/empleado/{empleado}/horarios-disponibles', [App\Http\Controllers\Malla\NovedadesController::class, 'horariosDisponiblesEmpleado'])->name('Novedades.horariosDisponiblesEmpleado');
+Route::get('/Novedades/{id}/editar-rechazada', [App\Http\Controllers\Malla\NovedadesController::class, 'editarRechazada'])->name('Novedades.editarRechazada');
 // Resource routes al final
 Route::resource('Novedades', App\Http\Controllers\Malla\NovedadesController::class);
 
