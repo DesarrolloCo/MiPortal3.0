@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use \Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 use App\Models\empleado;
 use App\Models\user;
@@ -26,9 +27,42 @@ class ContratosController extends Controller
         $this->middleware('auth');
     }
 
+    /**
+     * Verificar si el usuario puede acceder a información de contratos
+     */
+    private function canAccessContratos()
+    {
+        $user = Auth::user();
+
+        // Verificar permiso específico
+        if ($user->can('ver-empleado')) {
+            return true;
+        }
+
+        // Verificar roles con acceso automático
+        if ($user->hasAnyRole(['Administrador', 'Supervisor', 'Contadores'])) {
+            return true;
+        }
+
+        return false;
+    }
+
     public function index($emp_id)
     {
-        $this->authorize('ver-empleado');
+        // Verificar permisos
+        if (!$this->canAccessContratos()) {
+            $user = Auth::user();
+            Log::warning('Usuario sin permiso intentando acceder a contratos:', [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'requested_employee_id' => $emp_id
+            ]);
+
+            return redirect()->route('home')->with('error',
+                'No tienes permisos para acceder al historial de contratos de empleados. ' .
+                'Contacta al administrador del sistema para solicitar los permisos necesarios.'
+            );
+        }
         // Obtener empleado con relaciones
         $empleado = empleado::with(['cargo', 'cliente', 'municipio', 'contratoActivo.cargo'])
             ->where('EMP_ID', $emp_id)
@@ -61,7 +95,9 @@ class ContratosController extends Controller
      */
     public function create(request $request)
     {
-        $this->authorize('crear-empleado');
+        if (!$this->canAccessContratos()) {
+            return redirect()->route('home')->with('error', 'No tienes permisos para gestionar contratos de empleados.');
+        }
         //
         $contrato = emp_contrato::where('EMP_ID', $request->EMP_ID)->where('EMC_FINALIZADO', 'NO')->get();
 
@@ -140,7 +176,9 @@ class ContratosController extends Controller
 
     public function finish(Request $request, $emc_id)
     {
-        $this->authorize('opciones-empleado');
+        if (!$this->canAccessContratos()) {
+            return redirect()->route('home')->with('error', 'No tienes permisos para gestionar contratos de empleados.');
+        }
         /* emp_contrato::where('EMC_ID', $emc_id)->update(['EMC_FINALIZADO' => 'SI']); */
 
         $contrato = emp_contrato::where('EMC_ID', $emc_id)->get();
